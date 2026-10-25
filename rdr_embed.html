@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Metadata Demo</title>
+    
+    <!-- Embedded JSON-LD Metadata -->
+    <script type="application/ld+json">
+    {
+      "@context": {
+        "rdr": "https://example.org"
+      },
+      "@type": "rdr:Repository",
+      "rdr:repositoryIdentifier": "repo-unique-id-12345",
+      "rdr:repositoryName": "Open Data Science Repository",
+      "rdr:additionalName": "ODSR",
+      "rdr:repositoryURL": "https://example.org",
+      "rdr:repositoryLanguage": "en",
+      "rdr:type": "disciplinary",
+      "rdr:description": "A comprehensive repository hosting open-access scientific datasets across multiple domains.",
+      "rdr:subject": ["Computer Science", "Environmental Science", "Bioinformatics"],
+      "rdr:contentType": ["raw data", "software applications", "structured text"],
+      "rdr:size": "540 TB",
+      "rdr:startDate": "2018-03-15",
+      "rdr:endDate": "",
+      "rdr:missionStatementURL": "https://example.org/mission",
+      "rdr:repositoryContact": "contact@repo.example.org",
+      
+      "rdr:institution": "Global Research University",
+      "rdr:institutionType": "non-profit",
+      "rdr:institutionCountry": "US",
+      
+      "rdr:providerType": "service provider",
+      "rdr:responsibilityStartDate": "2018-03-15",
+      "rdr:responsibilityEndDate": "",
+      
+      "rdr:fundingInformation": {
+        "@type": "rdr:Funding",
+        "rdr:funderName": "National Science Foundation",
+        "rdr:funderIdentifier": "https://doi.org",
+        "rdr:fundingProgram": "Office of Advanced Cyberinfrastructure",
+        "rdr:awardNumber": "OAC-1234567"
+      },
+      
+      "rdr:pidSystem": ["DOI", "ARK"],
+      "rdr:metadataStandard": ["Dublin Core", "DataCite Metadata Schema"],
+      "rdr:qualityManagementMeasure": "Curation and review by data librarians before publication.",
+      
+      "rdr:policy": [
+        "https://example.org/privacy-policy",
+        "https://example.org/terms-of-use",
+        "https://example.org/preservation-policy",
+        "https://example.org/data-access-policy",
+        "https://example.org/takedown-policy"
+      ],
+      "rdr:certificate": ["CoreTrustSeal", "ISO 27001"],
+      
+      "rdr:databaseSystem": "PostgreSQL",
+      "rdr:software": "InvenioRDM",
+      "rdr:api": "https://example.org/api/v1",
+      "rdr:apiType": "REST API",
+      
+      "rdr:citationGuideline": "https://example.org/citation-guide",
+      "rdr:remarks": "This page serves as a mock demonstration map of custom RDR metadata elements."
+    }
+    </script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #333; }
+        h1, h2 { color: #0056b3; border-bottom: 2px solid #eaeaea; padding-bottom: 8px; }
+        .meta-group { background: #f8f9fa; border-left: 4px solid #0056b3; padding: 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0; }
+        .meta-item { margin-bottom: 8px; }
+        .meta-label { font-weight: bold; color: #555; display: inline-block; width: 220px; }
+        code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: monospace; }
+        a { color: #0056b3; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <h1>Repository Profile</h1>
+    <p>This visible page mirrors the structured data embedded in the hidden JSON-LD script for indexers and web crawlers.</p>
+
+    <h2>General Information</h2>
+    <div class="meta-group">
+        <div class="meta-item"><span class="meta-label">Identifier:</span> <code id="repositoryIdentifier">repo-unique-id-12345</code></div>
+        <div class="meta-item"><span class="meta-label">Repository Name:</span> <strong id="repositoryName">Open Data Science Repository</strong></div>
+        <div class="meta-item"><span class="meta-label">Additional Name:</span> <span id="additionalName">ODSR</span></div>
+        <div class="meta-item"><span class="meta-label">URL:</span> <a id="repositoryURL" href="https://example.org">https://example.org</a></div>
+        <div class="meta-item"><span class="meta-label">Language:</span> <span id="repositoryLanguage">en</span></div>
+        <div class="meta-item"><span class="meta-label">Repository Type:</span> <span id="type">disciplinary</span></div>
+        <div class="meta-item"><span class="meta-label">Description:</span> <span id="description">A comprehensive repository hosting open-access scientific datasets across multiple domains.</span></div>
+        <div class="meta-item"><span class="meta-label">Subjects Covered:</span> <span id="subject">Computer Science, Environmental Science, Bioinformatics</span></div>
+        <div class="meta-item"><span class="meta-label">Content Types:</span> <span id="contentType">raw data, software applications, structured text</span></div>
+        <div class="meta-item"><span class="meta-label">Size:</span> <span id="size">540 TB</span></div>
+        <div class="meta-item"><span class="meta-label">Start Date:</span> <span id="startDate">2018-03-15</span></div>
+        <div class="meta-item"><span class="meta-label">End Date:</span> <span id="endDate">N/A (Active)</span></div>
+        <div class="meta-item"><span class="meta-label">Mission Statement:</span> <a id="missionStatementURL" href="https://example.org/mission">https://example.org/mission</a></div>
+        <div class="meta-item"><span class="meta-label">Contact:</span> <a id="repositoryContact" href="mailto:contact@repo.example.org">contact@repo.example.org</a></div>
+    </div>
+
+    <h2>Institution & Providers</h2>
+    <div class="meta-group">
+        <div class="meta-item"><span class="meta-label">Hosting Institution:</span> <span id="institution">Global Research University</span></div>
+        <div class="meta-item"><span class="meta-label">Institution Type:</span> <span id="institutionType">non-profit</span></div>
+        <div class="meta-item"><span class="meta-label">Country:</span> <span id="institutionCountry">US</span></div>
+        <div class="meta-item"><span class="meta-label">Provider Type:</span> <span id="providerType">service provider</span></div>
+        <div class="meta-item"><span class="meta-label">Responsibility Start Date:</span> <span id="responsibilityStartDate">2018-03-15</span></div>
+        <div class="meta-item"><span class="meta-label">Responsibility End Date:</span> <span id="responsibilityEndDate">N/A</span></div>
+    </div>
+
+    <h2>Funding Information</h2>
+    <div class="meta-group" id="fundingInformation">
+        <div class="meta-item"><span class="meta-label">Funder Name:</span> <span id="funderName">National Science Foundation</span></div>
+        <div class="meta-item"><span class="meta-label">Funder Identifier:</span> <a id="funderIdentifier" href="https://doi.org">https://doi.org</a></div>
+        <div class="meta-item"><span class="meta-label">Funding Program:</span> <span id="fundingProgram">Office of Advanced Cyberinfrastructure</span></div>
+        <div class="meta-item"><span class="meta-label">Award Number:</span> <code id="awardNumber">OAC-1234567</code></div>
+    </div>
+
+    <h2>Standards, Compliance & Tech Stack</h2>
+    <div class="meta-group">
+        <div class="meta-item"><span class="meta-label">PID Systems:</span> <span id="pidSystem">DOI, ARK</span></div>
+        <div class="meta-item"><span class="meta-label">Metadata Standards:</span> <span id="metadataStandard">Dublin Core, DataCite Metadata Schema</span></div>
+        <div class="meta-item"><span class="meta-label">Quality Management:</span> <span id="qualityManagementMeasure">Curation and review by data librarians before publication.</span></div>
+        <div class="meta-item">
+            <span class="meta-label">Policies:</span> 
+            <ul id="policyList" style="margin: 5px 0 0 220px; padding-left: 20px;">
+                <li><a href="https://example.org/privacy-policy">Privacy Policy</a></li>
+                <li><a href="https://example.org/terms-of-use">Terms of Use</a></li>
+                <li><a href="https://example.org/preservation-policy">Preservation Policy</a></li>
+                <li><a href="https://example.org/data-access-policy">Data Access Policy</a></li>
+                <li><a href="https://example.org/takedown-policy">Takedown Policy</a></li>
+            </ul>
+        </div>
+        <div class="meta-item"><span class="meta-label">Certificates:</span> <span id="certificate">CoreTrustSeal, ISO 27001</span></div>
+        <div class="meta-item"><span class="meta-label">Database System:</span> <span id="databaseSystem">PostgreSQL</span></div>
+        <div class="meta-item"><span class="meta-label">Software Platform:</span> <span id="software">InvenioRDM</span></div>
+        <div class="meta-item"><span class="meta-label">API Endpoint:</span> <a id="api" href="https://example.org/api/v1">https://example.org/api/v1</a></div>
+        <div class="meta-item"><span class="meta-label">API Type:</span> <span id="apiType">REST API</span></div>
+        <div class="meta-item"><span class="meta-label">Citation Guideline:</span> <a id="citationGuideline" href="https://example.org/citation-guide">https://example.org/citation-guide</a></div>
+    </div>
+
+    <h2>Remarks</h2>
+    <p id="remarks" style="font-style: italic; color: #666;">
+        This page serves as a mock demonstration map of custom RDR metadata elements.
+    </p>
+
+</body>
+</html>

@@ -5,142 +5,425 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>re3data Enkel URL Harvester</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
-        .input-group { margin-bottom: 15px; }
-        input[type="text"] { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 4px; margin-top: 10px; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #status { margin: 15px 0; font-weight: bold; color: #555; }
-        pre { background: #f4f4f4; padding: 15px; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; min-height: 150px; }
+        :root {
+            --bg: #f5f7fb;
+            --panel: #ffffff;
+            --border: #dfe5ee;
+            --primary: #0d6efd;
+            --primary-dark: #0b5ed7;
+            --success: #198754;
+            --text: #1f2937;
+            --muted: #6b7280;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            max-width: 920px;
+            margin: 40px auto;
+            padding: 0 20px 40px;
+            line-height: 1.6;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 2rem;
+        }
+
+        .input-group {
+            margin: 18px 0 8px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13,110,253,.12);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--primary-dark);
+        }
+
+        button:disabled {
+            background: #c3cbd8;
+            cursor: not-allowed;
+        }
+
+        .download-btn {
+            background: var(--success);
+        }
+
+        .download-btn:hover:not(:disabled) {
+            background: #157347;
+        }
+
+        #status {
+            margin: 20px 0 10px;
+            font-weight: bold;
+            color: var(--muted);
+            min-height: 24px;
+        }
+
+        h3 {
+            margin-top: 26px;
+        }
+
+        pre {
+            background: #f8fafc;
+            color: #111827;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow-x: auto;
+            min-height: 200px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+
+        .note {
+            font-size: 0.95rem;
+            color: var(--muted);
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
+    <div class="panel">
+        <h1>re3data Enkel URL Harvester</h1>
+        <p>Lim inn en re3data-URL eller en ID for å hente metadata og konvertere direkte til Turtle (.ttl).</p>
 
-    <h1>re3data Enkel URL Harvester</h1>
-    <p>Lim inn en re3data-URL eller en ID for å hente metadata og konvertere direkte til Turtle (.ttl).</p>
-    
-    <div class="input-group">
-        <label for="repo-input"><strong>re3data URL eller ID:</strong></label>
-        <input type="text" id="repo-input" placeholder="F.eks. https://re3data.org eller bare r3d100010134">
+        <div class="input-group">
+            <label for="repo-input"><strong>re3data URL eller ID:</strong></label>
+            <input type="text" id="repo-input" placeholder="F.eks. https://www.re3data.org/repository/r3d100010134 eller bare r3d100010134">
+        </div>
+
+        <div class="actions">
+            <button id="start-btn" type="button">Konverter til Turtle</button>
+        </div>
+
+        <div id="status">Klar.</div>
+        <div class="note">Hvis du får CORS-feil, kjør denne filen via en lokal webserver, for eksempel: python -m http.server 8000</div>
+
+        <h3>Turtle-resultat (.ttl):</h3>
+        <pre id="output">Resultatet vil dukke opp her...</pre>
     </div>
-    
-    <button id="start-btn">Konverter til Turtle</button>
-    
-    <div id="status">Klar.</div>
-    
-    <h3>Turtle-resultat (.ttl):</h3>
-    <pre id="output">Resultatet vil dukke opp her...</pre>
 
     <script>
-        function cleanText(text) {
-            if (!text) return "";
-            return text.replace(/"/g, '\\"').replace(/\n/g, ' ').trim();
+        function cleanText(value) {
+            if (!value) return "";
+            return String(value)
+                .replace(/\\/g, "\\\\")
+                .replace(/"/g, '\\"')
+                .replace(/\r?\n/g, " ")
+                .trim();
         }
 
-        // Hjelpefunksjon for å trekke ut ID-en uansett om brukeren limer inn full URL eller rå ID
+        function escapeTurtleString(value) {
+            return cleanText(value)
+                .replace(/\\t/g, "\\t")
+                .replace(/\\r/g, "\\r")
+                .replace(/\\n/g, "\\n");
+        }
+
         function extractRepoId(input) {
-            const trimmed = input.trim();
-            if (trimmed.includes("repository/")) {
-                return trimmed.split("repository/")[1].split("/")[0];
+            const trimmed = (input || "").trim();
+            if (!trimmed) return "";
+
+            const match = trimmed.match(/(?:^|\/)(r3d[0-9A-Za-z]+)(?:\/|$)/i);
+            if (match && match[1]) return match[1];
+
+            const cleaned = trimmed.replace(/^https?:\/\/[a-z0-9.-]+\//i, "")
+                .replace(/^\//, "")
+                .replace(/\?.*$/, "")
+                .replace(/#.*$/, "")
+                .split("/")[0]
+                .trim();
+
+            return cleaned;
+        }
+
+        function removeDownloadButton() {
+            const existing = document.getElementById('download-btn');
+            if (existing) existing.remove();
+        }
+
+        function createDownloadButton(content, repoId) {
+            removeDownloadButton();
+
+            const btn = document.createElement('button');
+            btn.id = 'download-btn';
+            btn.type = 'button';
+            btn.className = 'download-btn';
+            btn.textContent = `Last ned ${repoId}.ttl`;
+
+            btn.addEventListener('click', () => {
+                const blob = new Blob([content], { type: 'text/turtle;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${repoId}.ttl`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            });
+
+            document.getElementById('start-btn').insertAdjacentElement('afterend', btn);
+        }
+
+        function getTextContentFromNode(node) {
+            if (!node) return "";
+            if (typeof node.textContent === 'string') return node.textContent.trim();
+            return "";
+        }
+
+        function parseMetadataFromJson(text) {
+            const parsed = JSON.parse(text);
+            const candidate = parsed.repository || parsed.data || parsed.result || parsed;
+            if (!candidate || typeof candidate !== 'object') return null;
+
+            return {
+                name: candidate.repositoryName || candidate.name || candidate.title || '',
+                url: candidate.repositoryURL || candidate.url || candidate.website || '',
+                description: candidate.description || candidate.repositoryDescription || candidate.summary || ''
+            };
+        }
+
+        function parseMetadataFromHtmlOrXml(text) {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(text, 'text/html');
+            const xmlDoc = parser.parseFromString(text, 'text/xml');
+
+            const pick = (...values) => {
+                for (const value of values) {
+                    if (value && String(value).trim()) return String(value).trim();
+                }
+                return "";
+            };
+
+            const metaName = pick(
+                htmlDoc.querySelector('meta[property="og:title"]')?.getAttribute('content'),
+                htmlDoc.querySelector('meta[name="citation_title"]')?.getAttribute('content'),
+                htmlDoc.querySelector('meta[name="description"]')?.getAttribute('content'),
+                htmlDoc.querySelector('h1')?.textContent,
+                getTextContentFromNode(xmlDoc.getElementsByTagName('repositoryName')[0]),
+                getTextContentFromNode(xmlDoc.getElementsByTagName('name')[0])
+            );
+
+            const metaUrl = pick(
+                htmlDoc.querySelector('link[rel="canonical"]')?.getAttribute('href'),
+                htmlDoc.querySelector('meta[property="og:url"]')?.getAttribute('content'),
+                getTextContentFromNode(xmlDoc.getElementsByTagName('repositoryURL')[0]),
+                getTextContentFromNode(xmlDoc.getElementsByTagName('url')[0])
+            );
+
+            const metaDescription = pick(
+                htmlDoc.querySelector('meta[property="og:description"]')?.getAttribute('content'),
+                htmlDoc.querySelector('meta[name="description"]')?.getAttribute('content'),
+                getTextContentFromNode(xmlDoc.getElementsByTagName('description')[0]),
+                htmlDoc.querySelector('p')?.textContent
+            );
+
+            return {
+                name: metaName || '',
+                url: metaUrl || '',
+                description: metaDescription || ''
+            };
+        }
+
+        function parseMetadata(text, contentType) {
+            const lowerType = (contentType || '').toLowerCase();
+            const trimmed = (text || '').trim();
+            if (!trimmed) return null;
+
+            try {
+                if (lowerType.includes('application/json') || trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                    return parseMetadataFromJson(trimmed);
+                }
+            } catch (error) {
+                // fortsetter til HTML/XML parsing
             }
-            return trimmed;
+
+            try {
+                const parsed = parseMetadataFromHtmlOrXml(trimmed);
+                if (parsed.name || parsed.url || parsed.description) return parsed;
+            } catch (error) {
+                // ignore
+            }
+
+            return null;
+        }
+
+        async function fetchMetadata(repoId) {
+            const candidateUrls = [
+                `https://www.re3data.org/repository/${repoId}`,
+                `https://www.re3data.org/api/beta/repository/${repoId}`,
+                `https://www.re3data.org/api/v1/repository/${repoId}`
+            ];
+
+            let lastError = null;
+
+            for (const url of candidateUrls) {
+                try {
+                    const response = await fetch(url, {
+                        mode: 'cors',
+                        headers: {
+                            'Accept': 'application/json, text/html, application/xml;q=0.9, */*;q=0.8'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const text = await response.text();
+                    if (!text || !text.trim()) {
+                        continue;
+                    }
+
+                    const metadata = parseMetadata(text, response.headers.get('content-type'));
+                    if (metadata && (metadata.name || metadata.url || metadata.description)) {
+                        return { url, metadata };
+                    }
+
+                    // Hvis parseMetadata feilet, prøv å lese HTML/XML med mer generisk parsing
+                    const fallback = parseMetadataFromHtmlOrXml(text);
+                    if (fallback && (fallback.name || fallback.url || fallback.description)) {
+                        return { url, metadata: fallback };
+                    }
+
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+
+            if (lastError) {
+                throw new Error(`Kunne ikke hente gyldig metadata for ${repoId}. Sjekk at ID-en er riktig. ${lastError.message}`);
+            }
+
+            throw new Error(`Kunne ikke hente data for ${repoId}. Sjekk at ID-en er riktig.`);
+        }
+
+        function createTurtle(repoId, metadata) {
+            const subject = `r3d:${repoId}`;
+            const lines = [
+                '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .',
+                '@prefix dc: <http://purl.org/dc/terms/> .',
+                '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .',
+                '@prefix r3d: <https://www.re3data.org/repository/> .',
+                ''
+            ];
+
+            const properties = [];
+            properties.push('    rdf:type <https://www.re3data.org/ontology/Repository>');
+
+            if (metadata.name) {
+                properties.push(`    dc:title "${escapeTurtleString(metadata.name)}"^^xsd:string`);
+            }
+
+            if (metadata.url) {
+                properties.push(`    dc:identifier <${metadata.url}>`);
+            }
+
+            if (metadata.description) {
+                properties.push(`    dc:description "${escapeTurtleString(metadata.description)}"^^xsd:string`);
+            }
+
+            lines.push(subject);
+            lines.push(properties.join(' ;\n') + ' .');
+            return lines.join('\n');
         }
 
         document.getElementById('start-btn').addEventListener('click', async () => {
-            const inputVal = document.getElementById('repo-input').value;
+            const inputEl = document.getElementById('repo-input');
             const btn = document.getElementById('start-btn');
             const statusDiv = document.getElementById('status');
             const outputPre = document.getElementById('output');
-            
-            // Fjern eventuell gammel nedlastingsknapp
-            const oldBtn = document.getElementById('download-btn');
-            if (oldBtn) oldBtn.remove();
 
-            if (!inputVal) {
-                statusDiv.textContent = "Vennligst oppgi en URL eller ID først.";
+            removeDownloadButton();
+
+            const rawInput = inputEl.value;
+            if (!rawInput || !rawInput.trim()) {
+                statusDiv.textContent = 'Vennligst oppgi en URL eller ID først.';
+                outputPre.textContent = 'Ingen input.';
                 return;
             }
 
-            const repoId = extractRepoId(inputVal);
-            const targetUrl = `https://www.re3data.org/api/v1/repository/{repoId}`;
+            const repoId = extractRepoId(rawInput);
+            if (!repoId) {
+                statusDiv.textContent = 'Kunne ikke finne en gyldig re3data-ID i inputen.';
+                outputPre.textContent = 'Sjekk at du har limt inn en re3data-URL eller ID.';
+                return;
+            }
 
             btn.disabled = true;
-            statusDiv.textContent = `Henter data fra ${targetUrl}...`;
-            outputPre.textContent = "Jobber...";
-
-            // Startoppsett for Turtle-filen
-            let turtleLines = [
-                "@prefix rdf: <http://w3.org> .",
-                "@prefix dc: <http://purl.org> .",
-                "@prefix xsd: <http://w3.org> .",
-                "@prefix r3d: <https://re3data.org> .",
-                "@prefix repo: <https://re3data.org> .",
-                ""
-            ];
+            statusDiv.textContent = `Henter metadata for ${repoId}...`;
+            outputPre.textContent = 'Jobber...';
 
             try {
-                const res = await fetch(targetUrl);
-                if (!res.ok) throw new Error(`Kunne ikke hente data (Status: ${res.status}). Sjekk at ID/URL er riktig.`);
-                
-                const xmlText = await res.text();
-                const parser = new DOMParser();
-                const detailDoc = parser.parseFromString(xmlText, "text/xml");
-                
-                // Hent ut XML-noder basert på tag-navn (uten namespace-prefiks for bredere nettleserstøtte)
-                const nameNode = detailDoc.getElementsByTagName("repositoryName")[0];
-                const urlNode = detailDoc.getElementsByTagName("repositoryURL")[0];
-                const descNode = detailDoc.getElementsByTagName("description")[0];
-                
-                let properties = [];
-                properties.push(`    rdf:type r3d:Repository`);
-                
-                if (nameNode && nameNode.textContent) {
-                    properties.push(`    dc:title "${cleanText(nameNode.textContent)}"^^xsd:string`);
-                }
-                if (urlNode && urlNode.textContent) {
-                    properties.push(`    r3d:repositoryURL <${cleanText(urlNode.textContent)}>`);
-                }
-                if (descNode && descNode.textContent) {
-                    properties.push(`    dc:description "${cleanText(descNode.textContent)}"^^xsd:string`);
-                }
-                
-                // Sett sammen triplene
-                turtleLines.push(`repo:${repoId}`);
-                turtleLines.push(properties.join(" ;\n") + " .");
-                
-                const finalTurtle = turtleLines.join("\n");
-                outputPre.textContent = finalTurtle;
-                statusDiv.textContent = "Konvertering fullført!";
-                
-                createDownloadButton(finalTurtle, repoId);
-
+                const { metadata } = await fetchMetadata(repoId);
+                const turtle = createTurtle(repoId, metadata);
+                outputPre.textContent = turtle;
+                statusDiv.textContent = 'Konvertering fullført!';
+                createDownloadButton(turtle, repoId);
             } catch (error) {
-                statusDiv.textContent = "Det oppstod en feil.";
-                outputPre.textContent = error.message;
+                statusDiv.textContent = 'Det oppstod en feil.';
+                outputPre.textContent = error.message || 'Ukjent feil.';
             } finally {
                 btn.disabled = false;
             }
         });
 
-        function createDownloadButton(content, repoId) {
-            const dlBtn = document.createElement('button');
-            dlBtn.id = 'download-btn';
-            dlBtn.textContent = `Last ned ${repoId}.ttl`;
-            dlBtn.style.backgroundColor = '#28a745';
-            dlBtn.style.marginLeft = '10px';
-            
-            dlBtn.addEventListener('click', () => {
-                const blob = new Blob([content], { type: 'text/turtle' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${repoId}.ttl`;
-                a.click();
-                URL.revokeObjectURL(url);
-            });
-            
-            document.getElementById('start-btn').after(dlBtn);
-        }
+        document.getElementById('repo-input').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                document.getElementById('start-btn').click();
+            }
+        });
     </script>
 </body>
 </html>

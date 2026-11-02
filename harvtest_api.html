@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>re3data API Turtle Harvester</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --border: #dfe7f1;
+      --primary: #0d6efd;
+      --primary-dark: #0b5ed7;
+      --success: #198754;
+      --text: #1f2937;
+      --muted: #6b7280;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 40px auto;
+      max-width: 980px;
+      padding: 0 20px 40px;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+    }
+
+    .input-group {
+      margin-top: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 16px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(13,110,253,0.12);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-dark);
+    }
+
+    button:disabled {
+      background: #c8d2df;
+      cursor: not-allowed;
+    }
+
+    .download-btn {
+      background: var(--success);
+    }
+
+    .download-btn:hover:not(:disabled) {
+      background: #157347;
+    }
+
+    #status {
+      margin-top: 18px;
+      min-height: 24px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    h3 {
+      margin-top: 28px;
+      margin-bottom: 10px;
+    }
+
+    pre {
+      margin: 0;
+      background: #f8fafc;
+      color: #111827;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      min-height: 220px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>re3data API Turtle Harvester</h1>
+    <p>Lim inn en re3data-URL eller ID, og få metadata konvertert direkte til Turtle (.ttl).</p>
+
+    <div class="input-group">
+      <label for="repo-input"><strong>re3data URL eller ID:</strong></label>
+      <input type="text" id="repo-input" placeholder="F.eks. https://www.re3data.org/repository/r3d100010134 eller bare r3d100010134" />
+    </div>
+
+    <div class="actions">
+      <button id="start-btn" type="button">Konverter til Turtle</button>
+    </div>
+
+    <div id="status">Klar.</div>
+    <div class="note">Tips: bruk en lokal webserver hvis browseren blokkerer CORS: python -m http.server 8000</div>
+
+    <h3>Turtle-resultat (.ttl):</h3>
+    <pre id="output">Resultatet vil dukke opp her...</pre>
+  </div>
+
+  <script>
+    function cleanText(value) {
+      if (value === null || value === undefined) return "";
+      return String(value)
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\r\n/g, " ")
+        .replace(/\n/g, " ")
+        .replace(/\r/g, " ")
+        .trim();
+    }
+
+    function escapeTurtleString(value) {
+      return cleanText(value)
+        .replace(/\t/g, "\\t")
+        .replace(/\f/g, "\\f");
+    }
+
+    function extractRepoId(input) {
+      const trimmed = (input || "").trim();
+      if (!trimmed) return "";
+
+      const directMatch = trimmed.match(/(?:^|\/)(r3d[0-9A-Za-z]+)(?:\/|\?|#|$)/i);
+      if (directMatch && directMatch[1]) return directMatch[1];
+
+      const cleaned = trimmed
+        .replace(/^https?:\/\//i, "")
+        .replace(/^www\./i, "")
+        .replace(/^re3data\.org\//i, "")
+        .replace(/^\//, "")
+        .replace(/\?.*$/, "")
+        .replace(/#.*$/, "")
+        .split("/")[0]
+        .trim();
+
+      return cleaned;
+    }
+
+    function removeDownloadButton() {
+      const existing = document.getElementById('download-btn');
+      if (existing) existing.remove();
+    }
+
+    function createDownloadButton(content, repoId) {
+      removeDownloadButton();
+
+      const btn = document.createElement('button');
+      btn.id = 'download-btn';
+      btn.type = 'button';
+      btn.className = 'download-btn';
+      btn.textContent = `Last ned ${repoId}.ttl`;
+
+      btn.addEventListener('click', () => {
+        const blob = new Blob([content], { type: 'text/turtle;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${repoId}.ttl`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById('start-btn').insertAdjacentElement('afterend', btn);
+    }
+
+    function getNested(obj, path) {
+      return path.split('.').reduce((cur, key) => (cur && cur[key] !== undefined ? cur[key] : undefined), obj);
+    }
+
+    function normalizeMetadata(raw) {
+      if (!raw || typeof raw !== 'object') return null;
+
+      const repository = raw.repository || raw.data || raw.result || raw;
+      if (!repository || typeof repository !== 'object') return null;
+
+      const repositoryName =
+        repository.repositoryName ||
+        repository.name ||
+        repository.title ||
+        repository.repositoryTitle ||
+        '';
+
+      const repositoryURL =
+        repository.repositoryURL ||
+        repository.url ||
+        repository.repositoryUrl ||
+        repository.website ||
+        repository.homepage ||
+        '';
+
+      const description =
+        repository.description ||
+        repository.repositoryDescription ||
+        repository.summary ||
+        repository.descriptionText ||
+        '';
+
+      const keywords =
+        repository.keywords ||
+        repository.tags ||
+        repository.repositoryKeywords ||
+        [];
+
+      const subjectList =
+        repository.subjects ||
+        repository.subject ||
+        repository.repositorySubjects ||
+        [];
+
+      const institution =
+        repository.institution ||
+        repository.repositoryInstitution ||
+        repository.organisation ||
+        repository.organization ||
+        '';
+
+      return {
+        repositoryName,
+        repositoryURL,
+        description,
+        keywords: Array.isArray(keywords) ? keywords : [keywords].filter(Boolean),
+        subjectList: Array.isArray(subjectList) ? subjectList : [subjectList].filter(Boolean),
+        institution
+      };
+    }
+
+    function safeString(value) {
+      if (Array.isArray(value)) {
+        return value.map(safeString).filter(Boolean).join(', ');
+      }
+      return value ? String(value).trim() : '';
+    }
+
+    function buildTurtle(repoId, metadata) {
+      const lines = [
+        '@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .',
+        '@prefix dc: <http://purl.org/dc/terms/> .',
+        '@prefix foaf: <http://xmlns.com/foaf/0.1/> .',
+        '@prefix dcat: <http://www.w3.org/ns/dcat#> .',
+        '@prefix schema: <https://schema.org/> .',
+        '@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .',
+        '@prefix r3d: <https://www.re3data.org/repository/> .',
+        ''
+      ];
+
+      const subject = `r3d:${repoId}`;
+      const props = [
+        '    rdf:type <https://www.re3data.org/ontology/Repository>'
+      ];
+
+      if (metadata.repositoryName) {
+        props.push(`    dc:title "${escapeTurtleString(metadata.repositoryName)}"^^xsd:string`);
+      }
+
+      if (metadata.repositoryURL) {
+        props.push(`    dcat:landingPage <${metadata.repositoryURL}>`);
+        props.push(`    schema:url <${metadata.repositoryURL}>`);
+      }
+
+      if (metadata.description) {
+        props.push(`    dc:description "${escapeTurtleString(metadata.description)}"^^xsd:string`);
+      }
+
+      if (metadata.institution) {
+        props.push(`    dc:publisher "${escapeTurtleString(metadata.institution)}"^^xsd:string`);
+      }
+
+      const keywords = (metadata.keywords || []).map(safeString).filter(Boolean);
+      keywords.forEach((keyword) => {
+        props.push(`    dc:subject "${escapeTurtleString(keyword)}"^^xsd:string`);
+      });
+
+      const subjects = (metadata.subjectList || []).map(safeString).filter(Boolean);
+      subjects.forEach((subjectLabel) => {
+        props.push(`    dc:subject "${escapeTurtleString(subjectLabel)}"^^xsd:string`);
+      });
+
+      lines.push(subject);
+      lines.push(props.join(' ;\n') + ' .');
+      return lines.join('\n');
+    }
+
+    async function fetchRepositoryData(repoId) {
+      const urls = [
+        `https://www.re3data.org/api/beta/repository/${repoId}`,
+        `https://re3data.org/api/beta/repository/${repoId}`
+      ];
+
+      let lastError = null;
+
+      for (const url of urls) {
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json, text/plain, */*'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const text = await response.text();
+          if (!text || !text.trim()) {
+            continue;
+          }
+
+          const candidate = JSON.parse(text);
+          const normalized = normalizeMetadata(candidate);
+          if (normalized) {
+            return { url, metadata: normalized };
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (lastError) {
+        throw new Error(`Kunne ikke hente gyldig re3data-data for ${repoId}. Sjekk at ID-en er riktig. ${lastError.message}`);
+      }
+
+      throw new Error(`Kunne ikke hente data for ${repoId}. Sjekk at ID-en er riktig.`);
+    }
+
+    document.getElementById('start-btn').addEventListener('click', async () => {
+      const inputEl = document.getElementById('repo-input');
+      const btn = document.getElementById('start-btn');
+      const statusDiv = document.getElementById('status');
+      const outputPre = document.getElementById('output');
+
+      removeDownloadButton();
+
+      const rawInput = inputEl.value;
+      if (!rawInput || !rawInput.trim()) {
+        statusDiv.textContent = 'Vennligst oppgi en URL eller ID først.';
+        outputPre.textContent = 'Ingen input.';
+        return;
+      }
+
+      const repoId = extractRepoId(rawInput);
+      if (!repoId) {
+        statusDiv.textContent = 'Kunne ikke finne en gyldig re3data-ID i inputen.';
+        outputPre.textContent = 'Sjekk at du har limt inn en re3data-URL eller ID.';
+        return;
+      }
+
+      btn.disabled = true;
+      statusDiv.textContent = `Henter metadata for ${repoId}...`;
+      outputPre.textContent = 'Jobber...';
+
+      try {
+        const { metadata } = await fetchRepositoryData(repoId);
+        const turtle = buildTurtle(repoId, metadata);
+        outputPre.textContent = turtle;
+        statusDiv.textContent = 'Konvertering fullført!';
+        createDownloadButton(turtle, repoId);
+      } catch (error) {
+        statusDiv.textContent = 'Det oppstod en feil.';
+        outputPre.textContent = error.message || 'Ukjent feil.';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('repo-input').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        document.getElementById('start-btn').click();
+      }
+    });
+  </script>
+</body>
+</html>

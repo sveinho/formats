@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>re3data Enkel URL Harvester</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+        .input-group { margin-bottom: 15px; }
+        input[type="text"] { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 4px; margin-top: 10px; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { margin: 15px 0; font-weight: bold; color: #555; }
+        pre { background: #f4f4f4; padding: 15px; border: 1px solid #ddd; border-radius: 4px; overflow-x: auto; min-height: 150px; }
+    </style>
+</head>
+<body>
+
+    <h1>re3data Enkel URL Harvester</h1>
+    <p>Lim inn en re3data-URL eller en ID for å hente metadata og konvertere direkte til Turtle (.ttl).</p>
+    
+    <div class="input-group">
+        <label for="repo-input"><strong>re3data URL eller ID:</strong></label>
+        <input type="text" id="repo-input" placeholder="F.eks. https://re3data.org eller bare r3d100010134">
+    </div>
+    
+    <button id="start-btn">Konverter til Turtle</button>
+    
+    <div id="status">Klar.</div>
+    
+    <h3>Turtle-resultat (.ttl):</h3>
+    <pre id="output">Resultatet vil dukke opp her...</pre>
+
+    <script>
+        function cleanText(text) {
+            if (!text) return "";
+            return text.replace(/"/g, '\\"').replace(/\n/g, ' ').trim();
+        }
+
+        // Hjelpefunksjon for å trekke ut ID-en uansett om brukeren limer inn full URL eller rå ID
+        function extractRepoId(input) {
+            const trimmed = input.trim();
+            if (trimmed.includes("repository/")) {
+                return trimmed.split("repository/")[1].split("/")[0];
+            }
+            return trimmed;
+        }
+
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            const inputVal = document.getElementById('repo-input').value;
+            const btn = document.getElementById('start-btn');
+            const statusDiv = document.getElementById('status');
+            const outputPre = document.getElementById('output');
+            
+            // Fjern eventuell gammel nedlastingsknapp
+            const oldBtn = document.getElementById('download-btn');
+            if (oldBtn) oldBtn.remove();
+
+            if (!inputVal) {
+                statusDiv.textContent = "Vennligst oppgi en URL eller ID først.";
+                return;
+            }
+
+            const repoId = extractRepoId(inputVal);
+            const targetUrl = `https://re3data.org{repoId}`;
+
+            btn.disabled = true;
+            statusDiv.textContent = `Henter data fra ${targetUrl}...`;
+            outputPre.textContent = "Jobber...";
+
+            // Startoppsett for Turtle-filen
+            let turtleLines = [
+                "@prefix rdf: <http://w3.org> .",
+                "@prefix dc: <http://purl.org> .",
+                "@prefix xsd: <http://w3.org> .",
+                "@prefix r3d: <https://re3data.org> .",
+                "@prefix repo: <https://re3data.org> .",
+                ""
+            ];
+
+            try {
+                const res = await fetch(targetUrl);
+                if (!res.ok) throw new Error(`Kunne ikke hente data (Status: ${res.status}). Sjekk at ID/URL er riktig.`);
+                
+                const xmlText = await res.text();
+                const parser = new DOMParser();
+                const detailDoc = parser.parseFromString(xmlText, "text/xml");
+                
+                // Hent ut XML-noder basert på tag-navn (uten namespace-prefiks for bredere nettleserstøtte)
+                const nameNode = detailDoc.getElementsByTagName("repositoryName")[0];
+                const urlNode = detailDoc.getElementsByTagName("repositoryURL")[0];
+                const descNode = detailDoc.getElementsByTagName("description")[0];
+                
+                let properties = [];
+                properties.push(`    rdf:type r3d:Repository`);
+                
+                if (nameNode && nameNode.textContent) {
+                    properties.push(`    dc:title "${cleanText(nameNode.textContent)}"^^xsd:string`);
+                }
+                if (urlNode && urlNode.textContent) {
+                    properties.push(`    r3d:repositoryURL <${cleanText(urlNode.textContent)}>`);
+                }
+                if (descNode && descNode.textContent) {
+                    properties.push(`    dc:description "${cleanText(descNode.textContent)}"^^xsd:string`);
+                }
+                
+                // Sett sammen triplene
+                turtleLines.push(`repo:${repoId}`);
+                turtleLines.push(properties.join(" ;\n") + " .");
+                
+                const finalTurtle = turtleLines.join("\n");
+                outputPre.textContent = finalTurtle;
+                statusDiv.textContent = "Konvertering fullført!";
+                
+                createDownloadButton(finalTurtle, repoId);
+
+            } catch (error) {
+                statusDiv.textContent = "Det oppstod en feil.";
+                outputPre.textContent = error.message;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        function createDownloadButton(content, repoId) {
+            const dlBtn = document.createElement('button');
+            dlBtn.id = 'download-btn';
+            dlBtn.textContent = `Last ned ${repoId}.ttl`;
+            dlBtn.style.backgroundColor = '#28a745';
+            dlBtn.style.marginLeft = '10px';
+            
+            dlBtn.addEventListener('click', () => {
+                const blob = new Blob([content], { type: 'text/turtle' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${repoId}.ttl`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+            
+            document.getElementById('start-btn').after(dlBtn);
+        }
+    </script>
+</body>
+</html>

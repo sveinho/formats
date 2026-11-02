@@ -62,7 +62,7 @@
             }
 
             const repoId = extractRepoId(inputVal);
-            const targetUrl = `https://re3data.org{repoId}`;
+            const targetUrl = `https://www.re3data.org/api/v1/repository/{repoId}`;
 
             btn.disabled = true;
             statusDiv.textContent = `Henter data fra ${targetUrl}...`;

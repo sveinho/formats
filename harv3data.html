@@ -23,7 +23,7 @@
     <p>Fetches a repository profile via the <a href="https://www.re3data.org/api/doc/" target="_blank">re3data API</a> and parses all fields into structurally accurate JSON-LD.</p>
     
     <div class="controls">
-        <input type="text" id="repoId" value="r3d100010134" placeholder="e.g., r3d100010134">
+        <input type="text" id="repoId" value="" placeholder="e.g., r3d100010134">
         <button onclick="harvestFullRepository()">Harvest Complete Schema</button>
     </div>
 
@@ -43,7 +43,7 @@
             outputBlock.textContent = "";
 
             // Use the fallback/proxy structure required for browser-based fetch executions
-            const url = `https://herokuapp.com{repoId}`;
+            const url = `https://schema.re3data.org/4-0/re3data-example-V4-0.xml`;
 
             try {
                 const response = await fetch(url);

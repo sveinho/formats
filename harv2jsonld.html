@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gist XML Harvester Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background: #fafafa; }
+        input { width: 100%; padding: 10px; margin-bottom: 10px; font-size: 14px; }
+        button { background: #0266d6; color: white; border: none; padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 4px; }
+        pre { background: #222; color: #fff; padding: 15px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+    <h1>Harvest Custom XML Gist Record</h1>
+    <p>Paste your Raw GitHub Gist XML URL below to verify the parser execution mapping rules:</p>
+    
+    <input type="text" id="targetUrl" value="PASTE_YOUR_RAW_GITHUB_GIST_URL_HERE">
+    <button onclick="harvestCustomGist()">Harvest Custom File</button>
+
+    <h3 id="status"></h3>
+    <pre><code id="output">// JSON-LD will print here...</code></pre>
+
+    <script>
+        async function harvestCustomGist() {
+            const url = document.getElementById('targetUrl').value.trim();
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+            
+            status.textContent = "Fetching record directly from Gist...";
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+                
+                const xmlText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+                if (xmlDoc.querySelector("parsererror")) throw new Error("Invalid XML formatting structure.");
+
+                // Re-applying the text and array helper map routines
+                const txt = (sel) => xmlDoc.querySelector(sel)?.textContent?.trim() || null;
+                const list = (sel) => Array.from(xmlDoc.querySelectorAll(sel)).map(el => el.textContent.trim()).filter(Boolean);
+
+                // Construct baseline dynamic Schema object
+                const jsonLD = {
+                    "@context": "https://schema.org",
+                    "@type": "DataRepository",
+                    "name": txt("repositoryName"),
+                    "url": txt("repositoryURL"),
+                    "description": txt("description"),
+                    "dateCreated": txt("startDate"),
+                    "offersLanguage": list("repositoryLanguage"),
+                    "provider": {
+                        "@type": "Organization",
+                        "name": txt("institutionName"),
+                        "location": txt("institutionCountry")
+                    },
+                    "value": []
+                };
+
+                // Add sample metadata extensions explicitly to check custom attributes
+                list("contentType").forEach(val => jsonLD.value.push({ "@type": "PropertyValue", "name": "Content Type", "value": val }));
+                list("pidSystem").forEach(val => jsonLD.value.push({ "@type": "PropertyValue", "name": "PID System", "value": val }));
+                
+                const funder = xmlDoc.querySelector("fundingInformation");
+                if (funder) {
+                    jsonLD.value.push({
+                        "@type": "PropertyValue",
+                        "name": "Funding Source Profile",
+                        "value": funder.querySelector("funderName")?.textContent
+                    });
+                }
+
+                // Inject tag to DOM
+                const oldScript = document.getElementById('gist-jsonld');
+                if (oldScript) oldScript.remove();
+                
+                const script = document.createElement('script');
+                script.id = 'gist-jsonld';
+                script.type = 'application/ld+json';
+                script.text = JSON.stringify(jsonLD, null, 2);
+                document.head.appendChild(script);
+
+                output.textContent = script.text;
+                status.textContent = "Harvested successfully from mock data record!";
+                status.style.color = "green";
+
+            } catch (err) {
+                status.textContent = `Error encountered: ${err.message}`;
+                status.style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>

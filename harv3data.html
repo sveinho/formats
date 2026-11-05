@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>re3data v4.0 Full Schema Harvester</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; padding: 20px; max-width: 1000px; margin: 0 auto; background: #fbfbfb; color: #222; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 18px; border-radius: 6px; overflow-x: auto; font-size: 13px; border: 1px solid #ddd; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { padding: 10px; width: 250px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #107c41; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0b5930; }
+        .status { margin: 10px 0; font-weight: bold; }
+        .success { color: #107c41; }
+        .error { color: #a80000; }
+        h3 { border-bottom: 2px solid #eeecea; padding-bottom: 5px; margin-top: 30px; }
+    </style>
+</head>
+<body>
+
+    <h1>re3data v4.0 Full Schema Harvester</h1>
+    <p>Fetches a repository profile via the <a href="https://www.re3data.org/api/doc/" target="_blank">re3data API</a> and parses all fields into structurally accurate JSON-LD.</p>
+    
+    <div class="controls">
+        <input type="text" id="repoId" value="r3d100010134" placeholder="e.g., r3d100010134">
+        <button onclick="harvestFullRepository()">Harvest Complete Schema</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <h3>Injected Schema.org JSON-LD Payload</h3>
+    <pre><code id="jsonldOutput">// Execute harvest to map variables...</code></pre>
+
+    <script>
+        async function harvestFullRepository() {
+            const repoId = document.getElementById('repoId').value.trim();
+            const statusDiv = document.getElementById('status');
+            const outputBlock = document.getElementById('jsonldOutput');
+            
+            statusDiv.className = "status";
+            statusDiv.textContent = "Querying API infrastructure and mapping fields...";
+            outputBlock.textContent = "";
+
+            // Use the fallback/proxy structure required for browser-based fetch executions
+            const url = `https://herokuapp.com{repoId}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP target rejected connection status: ${response.status}`);
+                
+                const xmlText = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+                // Check for parsing bugs/malformed XML
+                const parseError = xmlDoc.querySelector("parsererror");
+                if (parseError) throw new Error("Downloaded response payloads could not be interpreted as valid XML.");
+
+                // BASE PARSING UTILITIES FOR COMPLEX WRAPPERS
+                const txt = (selector, parent = xmlDoc) => parent.querySelector(selector)?.textContent?.trim() || null;
+                const attr = (selector, attributeName, parent = xmlDoc) => parent.querySelector(selector)?.getAttribute(attributeName) || null;
+                
+                const list = (selector, parent = xmlDoc) => 
+                    Array.from(parent.querySelectorAll(selector)).map(el => el.textContent.trim()).filter(Boolean);
+
+                const mapNodes = (selector, parserFn, parent = xmlDoc) =>
+                    Array.from(parent.querySelectorAll(selector)).map(el => parserFn(el));
+
+                // PARSING LOGIC CORRESPONDING TO RE3DATA V4.0 SCHEMA FIELDS
+                const jsonLDData = {
+                    "@context": "https://schema.org",
+                    "@type": "DataRepository",
+                    "@id": `https://re3data.org{repoId}`,
+                    "identifier": repoId,
+                    
+                    // 1. General System Profile
+                    "name": txt("repositoryName"),
+                    "alternativeName": list("additionalName"),
+                    "url": txt("repositoryURL"),
+                    "description": txt("description"),
+                    "dateCreated": txt("startDate"),
+                    "dateRemaining": txt("endDate closed"), // v4.0 lifecycle boundary element
+                    
+                    "provider": mapNodes("institution", (inst) => ({
+                        "@type": "Organization",
+                        "name": txt("institutionName", inst),
+                        "alternativeName": list("institutionAdditionalName", inst),
+                        "url": txt("institutionURL", inst),
+                        "location": txt("institutionCountry", inst),
+                        "identifier": attr("institutionIdentifier", "institutionIdentifierType", inst) 
+                            ? `${attr("institutionIdentifier", "institutionIdentifierType", inst)}:${txt("institutionIdentifier", inst)}`
+                            : null,
+                        "funder": attr("responsibilityType", "responsibilityType", inst)?.includes("funding") ? "True" : "False"
+                    })),
+
+                    // 2. Navigation Contact Parameters
+                    "contactPoint": mapNodes("repositoryContact", (contact) => ({
+                        "@type": "ContactPoint",
+                        "email": contact.textContent.includes("@") ? contact.textContent : null,
+                        "url": !contact.textContent.includes("@") ? contact.textContent : null
+                    })),
+
+                    // 3. Structural Properties and Content Types
+                    "contentType": list("contentType"), // Aligning directly with updated COAR Resource Vocabularies v4
+                    "offersLanguage": list("repositoryLanguage"),
+                    
+                    // 4. Structural Policies, Legal framework, and Licensing configurations
+                    "publishingPrinciples": mapNodes("repositoryPolicy", (policy) => ({
+                        "@type": "DigitalDocument",
+                        "name": txt("repositoryPolicyName", policy),
+                        "url": txt("repositoryPolicyURL", policy)
+                    })),
+                    
+                    "databaseLicense": list("dataLicenseName"),
+                    
+                    // 5. Technical Environment & Access Interfaces
+                    "softwareRequirements": list("software name"),
+                    "apiDocumentation": mapNodes("api", (apiNode) => ({
+                        "@type": "WebAPI",
+                        "name": attr("api", "apiType", apiNode) || "Repository API",
+                        "documentation": apiNode.textContent.trim()
+                    })),
+
+                    // 6. Schema v4.0 Specific Extended Properties Framework
+                    "propertyID": "re3data:v4.0",
+                    "value": []
+                };
+
+                // RE3DATA V4 EXTENDED SCHEMA METADATA MAPPING (Preserved as PropertyValue Elements)
+                const extendedProperties = [
+                    { prop: "repositoryType", label: "Repository Type", type: "list" }, //
+                    { prop: "size", label: "Data Volume Metric Size", type: "text" }, //
+                    { prop: "repositoryLanguage", label: "Language Profile", type: "list" },
+                    { prop: "subject", label: "Subject Domain Classification", type: "list" },
+                    { prop: "dataAccess", label: "Data Access Policy Type", type: "nodes", parse: n => `${txt("dataAccessType", n)} (Restriction: ${txt("dataAccessRestriction", n) || 'None'})` },
+                    { prop: "dataUpload", label: "Data Upload Restriction Tier", type: "nodes", parse: n => `${txt("dataUploadType", n)} (Restriction: ${txt("dataUploadRestriction", n) || 'None'})` },
+                    { prop: "pidSystem", label: "Supported Persistent Identifier System", type: "list" },
+                    { prop: "metadataStandardName", label: "Supported Metadata Framework", type: "list" },
+                    { prop: "syndication", label: "Syndication / Syndication Protocol", type: "list" },
+                    { prop: "qualityManagementMeasure", label: "Quality Assurance System Tracker", type: "list" }, // Added in v4.0
+                    { prop: "fundingInformation", label: "Funding Source Profile", type: "nodes", parse: n => `${txt("funderName", n)} [ID: ${txt("funderIdentifier", n) || 'N/A'}]` }, // Added in v4.0
+                    { prop: "relatedRepository", label: "Linked Structural Repositories", type: "nodes", parse: n => `${txt("relatedRepositoryName", n)} (${attr("relatedRepository", "relationType", n) || 'Related'})` } // Added in v4.0
+                ];
+
+                extendedProperties.forEach(({ prop, label, type, parse }) => {
+                    if (type === "list") {
+                        list(prop).forEach(val => {
+                            jsonLDData.value.push({ "@type": "PropertyValue", "name": label, "value": val });
+                        });
+                    } else if (type === "text") {
+                        const val = txt(prop);
+                        if (val) jsonLDData.value.push({ "@type": "PropertyValue", "name": label, "value": val });
+                    } else if (type === "nodes" && parse) {
+                        mapNodes(prop, parse).forEach(val => {
+                            if(val && !val.startsWith("null")) {
+                                jsonLDData.value.push({ "@type": "PropertyValue", "name": label, "value": val });
+                            }
+                        });
+}
+});
+// Clear structural clutter if no values were generated for extended properties
+if (jsonLDData.value.length === 0) delete jsonLDData.value;
+// DOM INJECTION WORKFLOW
+const existingScript = document.getElementById('dynamic-jsonld-v4');
+if (existingScript) existingScript.remove();
+const script = document.createElement('script');
+script.id = 'dynamic-jsonld-v4';
+script.type = 'application/ld+json';
+script.text = JSON.stringify(jsonLDData, null, 2);
+document.head.appendChild(script);
+// Update display panel
+outputBlock.textContent = script.text;
+statusDiv.textContent = "Successfully parsed re3data v4.0 schema and generated dynamic tag!";
+statusDiv.className = "status success";
+} catch (error) {
+console.error(error);
+statusDiv.textContent = Execution halted: ${error.message};
+statusDiv.className = "status error";
+}
+}

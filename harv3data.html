@@ -1,181 +1,225 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>re3data v4.0 Full Schema Harvester</title>
+    <title>Gist XML Harvester & Editor</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.5; padding: 20px; max-width: 1000px; margin: 0 auto; background: #fbfbfb; color: #222; }
-        pre { background: #1e1e1e; color: #d4d4d4; padding: 18px; border-radius: 6px; overflow-x: auto; font-size: 13px; border: 1px solid #ddd; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { padding: 10px; width: 250px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background: #107c41; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0b5930; }
-        .status { margin: 10px 0; font-weight: bold; }
-        .success { color: #107c41; }
-        .error { color: #a80000; }
-        h3 { border-bottom: 2px solid #eeecea; padding-bottom: 5px; margin-top: 30px; }
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background: #fafafa; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 12px; font-size: 14px; box-sizing: border-box; }
+        textarea { height: 60px; resize: vertical; }
+        label { font-weight: bold; display: block; margin-bottom: 4px; font-size: 14px; color: #333; }
+        button { color: white; border: none; padding: 12px 20px; font-size: 16px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .btn-fetch { background: #28a745; margin-bottom: 20px; }
+        .btn-generate { background: #0266d6; width: 100%; margin-top: 15px; }
+        pre { background: #222; color: #fff; padding: 15px; border-radius: 4px; overflow-x: auto; margin-top: 20px; }
+        .section { background: #fff; padding: 20px; border-radius: 6px; border: 1px solid #ddd; margin-bottom: 20px; }
+        .hidden { display: none; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        h2 { border-bottom: 2px solid #0266d6; padding-bottom: 5px; color: #0266d6; }
+        h3 { margin-top: 0; color: #555; }
     </style>
 </head>
 <body>
 
-    <h1>re3data v4.0 Full Schema Harvester</h1>
-    <p>Fetches a repository profile via the <a href="https://www.re3data.org/api/doc/" target="_blank">re3data API</a> and parses all fields into structurally accurate JSON-LD.</p>
+    <h1>Harvest & Edit Gist XML Record</h1>
     
-    <div class="controls">
-        <input type="text" id="repoId" value="" placeholder="e.g., r3d100010134">
-        <button onclick="harvestFullRepository()">Harvest Complete Schema</button>
+    <!-- TRINN 1: HENT DATA -->
+    <div class="section">
+        <label for="targetUrl">GitHub Gist XML URL:</label>
+        <input type="text" id="targetUrl" value="PASTE_YOUR_RAW_GITHUB_GIST_URL_HERE">
+        <button class="btn-fetch" onclick="fetchGistData()">Fetch & Populate Fields</button>
+        <span id="status"></span>
     </div>
 
-    <div id="status" class="status"></div>
+    <!-- TRINN 2: REDIGERINGSFORM (Skjult til data er hentet) -->
+    <div id="editorSection" class="section hidden">
+        <h2>Edit Metadata Before Export</h2>
+        
+        <div class="grid">
+            <div>
+                <label for="repoIdentifier">Identifier:</label>
+                <input type="text" id="repoIdentifier">
+            </div>
+            <div>
+                <label for="repoName">Repository Name:</label>
+                <input type="text" id="repoName">
+            </div>
+        </div>
 
-    <h3>Injected Schema.org JSON-LD Payload</h3>
-    <pre><code id="jsonldOutput">// Execute harvest to map variables...</code></pre>
+        <label for="repoUrl">Repository URL:</label>
+        <input type="text" id="repoUrl">
+
+        <label for="description">Description:</label>
+        <textarea id="description"></textarea>
+
+        <div class="grid">
+            <div>
+                <label for="startDate">Date Created:</label>
+                <input type="text" id="startDate">
+            </div>
+            <div>
+                <label for="repoLanguage">Languages (comma separated):</label>
+                <input type="text" id="repoLanguage">
+            </div>
+        </div>
+
+        <h3>Provider / Institution</h3>
+        <div class="grid">
+            <div>
+                <label for="instName">Institution Name:</label>
+                <input type="text" id="instName">
+            </div>
+            <div>
+                <label for="instCountry">Institution Country:</label>
+                <input type="text" id="instCountry">
+            </div>
+        </div>
+
+        <h3>Custom Metadata & Extensions</h3>
+        <div class="grid">
+            <div>
+                <label for="contentType">Content Type (comma separated):</label>
+                <input type="text" id="contentType">
+            </div>
+            <div>
+                <label for="pidSystem">PID System (comma separated):</label>
+                <input type="text" id="pidSystem">
+            </div>
+        </div>
+
+        <label for="funderName">Funding Source Profile:</label>
+        <input type="text" id="funderName">
+
+        <h3>Supplementary Information</h3>
+        <label for="suppKeywords">Keywords (comma separated):</label>
+        <input type="text" id="suppKeywords" placeholder="e.g. climate change, open science">
+
+        <label for="suppComment">Additional Comments:</label>
+        <textarea id="suppComment" placeholder="Add extra notes here..."></textarea>
+
+        <button class="btn-generate" onclick="generateJsonLD()">Generate & Inject JSON-LD</button>
+    </div>
+
+    <!-- TRINN 3: OUTPUT -->
+    <pre><code id="output">// JSON-LD will print here after clicking "Generate"...</code></pre>
 
     <script>
-        async function harvestFullRepository() {
-            const repoId = document.getElementById('repoId').value.trim();
-            const statusDiv = document.getElementById('status');
-            const outputBlock = document.getElementById('jsonldOutput');
-            
-            statusDiv.className = "status";
-            statusDiv.textContent = "Querying API infrastructure and mapping fields...";
-            outputBlock.textContent = "";
+        // Global variabel for å sjekke om vi har et aktivt funder-element fra XML
+        let hasFunder = false;
 
-            // Use the fallback/proxy structure required for browser-based fetch executions
-            const url = `https://schema.re3data.org/4-0/re3data-example-V4-0.xml`;
+        async function fetchGistData() {
+            const url = document.getElementById('targetUrl').value.trim();
+            const status = document.getElementById('status');
+            const editorSection = document.getElementById('editorSection');
+            
+            status.textContent = " Fetching and parsing XML...";
+            status.style.color = "orange";
 
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP target rejected connection status: ${response.status}`);
+                if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
                 
                 const xmlText = await response.text();
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+                if (xmlDoc.querySelector("parsererror")) throw new Error("Invalid XML structure.");
 
-                // Check for parsing bugs/malformed XML
-                const parseError = xmlDoc.querySelector("parsererror");
-                if (parseError) throw new Error("Downloaded response payloads could not be interpreted as valid XML.");
+                // Helper-funksjoner for XML-parsing
+                const txt = (sel) => xmlDoc.querySelector(sel)?.textContent?.trim() || "";
+                const list = (sel) => Array.from(xmlDoc.querySelectorAll(sel)).map(el => el.textContent.trim()).filter(Boolean).join(", ");
 
-                // BASE PARSING UTILITIES FOR COMPLEX WRAPPERS
-                const txt = (selector, parent = xmlDoc) => parent.querySelector(selector)?.textContent?.trim() || null;
-                const attr = (selector, attributeName, parent = xmlDoc) => parent.querySelector(selector)?.getAttribute(attributeName) || null;
+                // Populerer alle redigerbare input-felter med data fra XML
+                document.getElementById('repoIdentifier').value = txt("repositoryIdentifier");
+                document.getElementById('repoName').value = txt("repositoryName");
+                document.getElementById('repoUrl').value = txt("repositoryURL");
+                document.getElementById('description').value = txt("description");
+                document.getElementById('startDate').value = txt("startDate");
+                document.getElementById('repoLanguage').value = list("repositoryLanguage");
+                document.getElementById('instName').value = txt("institutionName");
+                document.getElementById('instCountry').value = txt("institutionCountry");
                 
-                const list = (selector, parent = xmlDoc) => 
-                    Array.from(parent.querySelectorAll(selector)).map(el => el.textContent.trim()).filter(Boolean);
+                document.getElementById('contentType').value = list("contentType");
+                document.getElementById('pidSystem').value = list("pidSystem");
+                
+                const funderEl = xmlDoc.querySelector("fundingInformation funderName");
+                document.getElementById('funderName').value = funderEl ? funderEl.textContent.trim() : "";
+                hasFunder = !!funderEl;
 
-                const mapNodes = (selector, parserFn, parent = xmlDoc) =>
-                    Array.from(parent.querySelectorAll(selector)).map(el => parserFn(el));
+                // Vis redigeringsskjemaet
+                editorSection.classList.remove('hidden');
+                status.textContent = " Data loaded! You can now edit the fields below.";
+                status.style.color = "green";
 
-                // PARSING LOGIC CORRESPONDING TO RE3DATA V4.0 SCHEMA FIELDS
-                const jsonLDData = {
-                    "@context": "https://schema.org",
-                    "@type": "DataRepository",
-                    "@id": `https://re3data.org{repoId}`,
-                    "identifier": repoId,
-                    
-                    // 1. General System Profile
-                    "name": txt("repositoryName"),
-                    "alternativeName": list("additionalName"),
-                    "url": txt("repositoryURL"),
-                    "description": txt("description"),
-                    "dateCreated": txt("startDate"),
-                    "dateRemaining": txt("endDate closed"), // v4.0 lifecycle boundary element
-                    
-                    "provider": mapNodes("institution", (inst) => ({
-                        "@type": "Organization",
-                        "name": txt("institutionName", inst),
-                        "alternativeName": list("institutionAdditionalName", inst),
-                        "url": txt("institutionURL", inst),
-                        "location": txt("institutionCountry", inst),
-                        "identifier": attr("institutionIdentifier", "institutionIdentifierType", inst) 
-                            ? `${attr("institutionIdentifier", "institutionIdentifierType", inst)}:${txt("institutionIdentifier", inst)}`
-                            : null,
-                        "funder": attr("responsibilityType", "responsibilityType", inst)?.includes("funding") ? "True" : "False"
-                    })),
+            } catch (err) {
+                status.textContent = ` Error: ${err.message}`;
+                status.style.color = "red";
+                editorSection.classList.add('hidden');
+            }
+        }
 
-                    // 2. Navigation Contact Parameters
-                    "contactPoint": mapNodes("repositoryContact", (contact) => ({
-                        "@type": "ContactPoint",
-                        "email": contact.textContent.includes("@") ? contact.textContent : null,
-                        "url": !contact.textContent.includes("@") ? contact.textContent : null
-                    })),
+        function generateJsonLD() {
+            const output = document.getElementById('output');
 
-                    // 3. Structural Properties and Content Types
-                    "contentType": list("contentType"), // Aligning directly with updated COAR Resource Vocabularies v4
-                    "offersLanguage": list("repositoryLanguage"),
-                    
-                    // 4. Structural Policies, Legal framework, and Licensing configurations
-                    "publishingPrinciples": mapNodes("repositoryPolicy", (policy) => ({
-                        "@type": "DigitalDocument",
-                        "name": txt("repositoryPolicyName", policy),
-                        "url": txt("repositoryPolicyURL", policy)
-                    })),
-                    
-                    "databaseLicense": list("dataLicenseName"),
-                    
-                    // 5. Technical Environment & Access Interfaces
-                    "softwareRequirements": list("software name"),
-                    "apiDocumentation": mapNodes("api", (apiNode) => ({
-                        "@type": "WebAPI",
-                        "name": attr("api", "apiType", apiNode) || "Repository API",
-                        "documentation": apiNode.textContent.trim()
-                    })),
+            // Hjelpefunksjon for å gjøre komma-separerte strenger om til rene arrays
+            const cleanList = (id) => document.getElementById(id).value.split(',').map(v => v.trim()).filter(Boolean);
+            const cleanTxt = (id) => document.getElementById(id).value.trim() || null;
 
-                    // 6. Schema v4.0 Specific Extended Properties Framework
-                    "propertyID": "re3data:v4.0",
-                    "value": []
+            // Bygg opp JSON-LD objektet basert på de REDIGERTE verdiene i skjemaet
+            const jsonLD = {
+                "@context": "https://schema.org",
+                "@type": "DataRepository",
+                "identifier": cleanTxt("repoIdentifier"),
+                "name": cleanTxt("repoName"),
+                "url": cleanTxt("repoUrl"),
+                "description": cleanTxt("description"),
+                "dateCreated": cleanTxt("startDate"),
+                "offersLanguage": cleanList("repoLanguage"),
+                "provider": {
+                    "@type": "Organization",
+                    "name": cleanTxt("instName"),
+                    "location": cleanTxt("instCountry")
+                },
+                "value": []
+            };
+
+            // Legg til Keywords hvis utfylt
+            const keywords = cleanList("suppKeywords");
+            if (keywords.length > 0) {
+                jsonLD.keywords = keywords;
+            }
+
+            // Legg til Comment hvis utfylt
+            const comment = cleanTxt("suppComment");
+            if (comment) {
+                jsonLD.comment = {
+                    "@type": "Comment",
+                    "text": comment
                 };
+            }
 
-                // RE3DATA V4 EXTENDED SCHEMA METADATA MAPPING (Preserved as PropertyValue Elements)
-                const extendedProperties = [
-                    { prop: "repositoryType", label: "Repository Type", type: "list" }, //
-                    { prop: "size", label: "Data Volume Metric Size", type: "text" }, //
-                    { prop: "repositoryLanguage", label: "Language Profile", type: "list" },
-                    { prop: "subject", label: "Subject Domain Classification", type: "list" },
-                    { prop: "dataAccess", label: "Data Access Policy Type", type: "nodes", parse: n => `${txt("dataAccessType", n)} (Restriction: ${txt("dataAccessRestriction", n) || 'None'})` },
-                    { prop: "dataUpload", label: "Data Upload Restriction Tier", type: "nodes", parse: n => `${txt("dataUploadType", n)} (Restriction: ${txt("dataUploadRestriction", n) || 'None'})` },
-                    { prop: "pidSystem", label: "Supported Persistent Identifier System", type: "list" },
-                    { prop: "metadataStandardName", label: "Supported Metadata Framework", type: "list" },
-                    { prop: "syndication", label: "Syndication / Syndication Protocol", type: "list" },
-                    { prop: "qualityManagementMeasure", label: "Quality Assurance System Tracker", type: "list" }, // Added in v4.0
-                    { prop: "fundingInformation", label: "Funding Source Profile", type: "nodes", parse: n => `${txt("funderName", n)} [ID: ${txt("funderIdentifier", n) || 'N/A'}]` }, // Added in v4.0
-                    { prop: "relatedRepository", label: "Linked Structural Repositories", type: "nodes", parse: n => `${txt("relatedRepositoryName", n)} (${attr("relatedRepository", "relationType", n) || 'Related'})` } // Added in v4.0
-                ];
+            // Generer PropertyValue-objekter fra de redigerte listene
+            cleanList("contentType").forEach(val => jsonLD.value.push({ "@type": "PropertyValue", "name": "Content Type", "value": val }));
+            cleanList("pidSystem").forEach(val => jsonLD.value.push({ "@type": "PropertyValue", "name": "PID System", "value": val }));
 
-                extendedProperties.forEach(({ prop, label, type, parse }) => {
-                    if (type === "list") {
-                        list(prop).forEach(val => {
-                            jsonLDData.value.push({ "@type": "PropertyValue", "name": label, "value": val });
-                        });
-                    } else if (type === "text") {
-                        const val = txt(prop);
-                        if (val) jsonLDData.value.push({ "@type": "PropertyValue", "name": label, "value": val });
-                    } else if (type === "nodes" && parse) {
-                        mapNodes(prop, parse).forEach(val => {
-                            if(val && !val.startsWith("null")) {
-                                jsonLDData.value.push({ "@type": "PropertyValue", "name": label, "value": val });
-                            }
-                        });
-}
-});
-// Clear structural clutter if no values were generated for extended properties
-if (jsonLDData.value.length === 0) delete jsonLDData.value;
-// DOM INJECTION WORKFLOW
-const existingScript = document.getElementById('dynamic-jsonld-v4');
-if (existingScript) existingScript.remove();
-const script = document.createElement('script');
-script.id = 'dynamic-jsonld-v4';
-script.type = 'application/ld+json';
-script.text = JSON.stringify(jsonLDData, null, 2);
-document.head.appendChild(script);
-// Update display panel
-outputBlock.textContent = script.text;
-statusDiv.textContent = "Successfully parsed re3data v4.0 schema and generated dynamic tag!";
-statusDiv.className = "status success";
-} catch (error) {
-console.error(error);
-statusDiv.textContent = Execution halted: ${error.message};
-statusDiv.className = "status error";
-}
-}
+            // Legg til funder hvis feltet inneholder tekst
+            const funderText = cleanTxt("funderName");
+            if (funderText) {
+                jsonLD.value.push({ "@type": "PropertyValue", "name": "Funding Source Profile", "value": funderText });
+            }
+
+            // Injisering til DOM <head>
+            const oldScript = document.getElementById('gist-jsonld');
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement('script');
+            script.id = 'gist-jsonld';
+            script.type = 'application/ld+json';
+            script.text = JSON.stringify(jsonLD, null, 2);
+            document.head.appendChild(script);
+
+            // Vis resultatet i kodeblokken
+            output.textContent = script.text;
+        }
+    </script>
+</body>
+</html>

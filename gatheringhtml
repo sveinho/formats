@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gist XML Harvester & Editor</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --border: #cbd5e1;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+        }
+        h1 { margin: 0 0 10px 0; color: var(--primary); }
+        .btn-container {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: var(--primary-hover); }
+        button.secondary { background-color: #475569; }
+        button.secondary:hover { background-color: #334155; }
+        
+        fieldset {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--card-bg);
+            margin-bottom: 25px;
+            padding: 20px;
+        }
+        legend {
+            font-weight: 700;
+            padding: 0 10px;
+            color: var(--primary);
+            font-size: 18px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        input, textarea {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        
+        .output-box {
+            background-color: #0f172a;
+            color: #38bdf8;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 500px;
+            border: 1px solid #1e293b;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Gist XML Harvester & Editor</h1>
+        <p>Høst og rediger metadata fra re3data.org, og generer JSON-LD automatisk.</p>
+    </header>
+    <div class="btn-container">
+        <button onclick="fetchAndPopulateAllElements()">1. Hent og populer felt</button>
+        <button class="secondary" onclick="generateComprehensiveJsonLd()">2. Generer JSON-LD</button>
+    </div>
+    <!-- 1. GENERELT -->
+    <fieldset>
+        <legend>1. Generell Informasjon</legend>
+        <div class="grid">
+            <div class="form-group"><label for="re3dataId">re3data ID</label><input type="text" id="re3dataId"></div>
+            <div class="form-group"><label for="doi">DOI (Repository)</label><input type="text" id="doi"></div>
+            <div class="form-group"><label for="repositoryName">Repository Navn</label><input type="text" id="repositoryName"></div>
+            <div class="form-group"><label for="additionalName">Alternative Navn</label><input type="text" id="additionalName"></div>
+            <div class="form-group"><label for="repositoryUrl">Repository URL</label><input type="url" id="repositoryUrl"></div>
+            <div class="form-group"><label for="repositoryIdentifierType">Ekstern ID Type</label><input type="text" id="repositoryIdentifierType"></div>
+            <div class="form-group"><label for="repositoryIdentifierValue">Ekstern ID Verdi</label><input type="text" id="repositoryIdentifierValue"></div>
+            <div class="form-group"><label for="type">Repository Type</label><input type="text" id="type"></div>
+            <div class="form-group"><label for="size">Størrelse</label><input type="text" id="size"></div>
+            <div class="form-group"><label for="providerType">Provider Type</label><input type="text" id="providerType"></div>
+            <div class="form-group"><label for="repositoryContactInformation">Kontaktinfo</label><input type="text" id="repositoryContactInformation"></div>
+            <div class="form-group"><label for="repositoryContactType">Kontakt Type</label><input type="text" id="repositoryContactType"></div>
+            <div class="form-group full-width"><label for="description">Beskrivelse</label><textarea id="description"></textarea></div>
+        </div>
+    </fieldset>
+
+    <!-- 2. LIVSSYKLUS & INNHOLD -->
+    <fieldset>
+        <legend>2. Livssyklus, Språk & Innholdstyper</legend>
+        <div class="grid">
+            <div class="form-group"><label for="startDate">Startdato</label><input type="text" id="startDate"></div>
+            <div class="form-group"><label for="closed">Stengt Dato</label><input type="text" id="closed"></div>
+            <div class="form-group"><label for="offline">Offline Dato</label><input type="text" id="offline"></div>
+            <div class="form-group"><label for="relatedRepositoryId">Relatert Repository ID</label><input type="text" id="relatedRepositoryId"></div>
+            <div class="form-group"><label for="relatedRepositoryType">Relasjonstype</label><input type="text" id="relatedRepositoryType"></div>
+            <div class="form-group"><label for="repositoryLanguage">Systemspråk</label><input type="text" id="repositoryLanguage"></div>
+            <div class="form-group"><label for="contentTypeName">Innholdstyper</label><input type="text" id="contentTypeName"></div>
+            <div class="form-group"><label for="keyword">Nøkkelord</label><input type="text" id="keyword"></div>
+            <div class="form-group"><label for="missionStatementUrl">Mission Statement URL</label><input type="url" id="missionStatementUrl"></div>
+            <div class="form-group full-width"><label for="subjects">Fagområder (Subjects)</label><input type="text" id="subjects"></div>
+        </div>
+    </fieldset>
+
+    <!-- 3. INSTITUSJON -->
+    <fieldset>
+        <legend>3. Ansvarlig Institusjon</legend>
+        <div class="grid">
+            <div class="form-group"><label for="institutionName">Institusjon Navn</label><input type="text" id="institutionName"></div>
+            <div class="form-group"><label for="institutionAdditionalName">Alternative Inst. Navn</label><input type="text" id="institutionAdditionalName"></div>
+            <div class="form-group"><label for="institutionCountry">Landskode (ISO)</label><input type="text" id="institutionCountry"></div>
+            <div class="form-group"><label for="institutionType">Institusjonstype</label><input type="text" id="institutionType"></div>
+            <div class="form-group"><label for="institutionUrl">Institusjon URL</label><input type="url" id="institutionUrl"></div>
+            <div class="form-group"><label for="responsibilityType">Ansvarstype</label><input type="text" id="responsibilityType"></div>
+            <div class="form-group"><label for="institutionIdentifierType">Inst. ID Type</label><input type="text" id="institutionIdentifierType"></div>
+            <div class="form-group"><label for="institutionIdentifierUrl">Inst. ID Verdi/URL</label><input type="text" id="institutionIdentifierUrl"></div>
+            <div class="form-group"><label for="responsibilityStartDate">Ansvar Startdato</label><input type="text" id="responsibilityStartDate"></div>
+            <div class="form-group"><label for="responsibilityEndDate">Ansvar Sluttdato</label><input type="text" id="responsibilityEndDate"></div>
+        </div>
+    </fieldset>
+    <!-- 4. LISENSER & REGLEMENT -->
+    <fieldset>
+        <legend>4. Reglement, Lisenser & Tilgang</legend>
+        <div class="grid">
+            <div class="form-group"><label for="policyName">Policy Navn</label><input type="text" id="policyName"></div>
+            <div class="form-group"><label for="policyUrl">Policy URL</label><input type="url" id="policyUrl"></div>
+            <div class="form-group"><label for="funderName">Finansiør (Funder)</label><input type="text" id="funderName"></div>
+            <div class="form-group"><label for="funderIdentifierValue">Funder ID</label><input type="text" id="funderIdentifierValue"></div>
+            <div class="form-group"><label for="grantIdentifier">Grant ID</label><input type="text" id="grantIdentifier"></div>
+            <div class="form-group"><label for="databaseAccessType">DB Tilgangstype</label><input type="text" id="databaseAccessType"></div>
+            <div class="form-group"><label for="databaseAccessRestriction">DB Restriksjoner</label><input type="text" id="databaseAccessRestriction"></div>
+            <div class="form-group"><label for="databaseLicenseName">DB Lisens Navn</label><input type="text" id="databaseLicenseName"></div>
+            <div class="form-group"><label for="databaseLicenseUrl">DB Lisens URL</label><input type="url" id="databaseLicenseUrl"></div>
+            <div class="form-group"><label for="dataAccessType">Data Tilgangstype</label><input type="text" id="dataAccessType"></div>
+            <div class="form-group"><label for="dataAccessRestriction">Data Restriksjoner</label><input type="text" id="dataAccessRestriction"></div>
+            <div class="form-group"><label for="dataLicenseName">Data Lisens Navn</label><input type="text" id="dataLicenseName"></div>
+            <div class="form-group"><label for="dataLicenseUrl">Data Lisens URL</label><input type="url" id="dataLicenseUrl"></div>
+            <div class="form-group"><label for="dataUploadType">Opplasting Type</label><input type="text" id="dataUploadType"></div>
+            <div class="form-group"><label for="dataUploadRestriction">Opplasting Restriksjoner</label><input type="text" id="dataUploadRestriction"></div>
+            <div class="form-group"><label id="dataUploadLicenseNameLabel" for="dataUploadLicenseName">Innskuddslisens Navn</label><input type="text" id="dataUploadLicenseName"></div>
+            <div class="form-group"><label for="dataUploadLicenseUrl">Innskuddslisens URL</label><input type="url" id="dataUploadLicenseUrl"></div>
+        </div>
+    </fieldset>
+
+    <!-- 5. TEKNISKE FUNKSJONER -->
+    <fieldset>
+        <legend>5. Tekniske Funksjoner & Kvalitetssikring</legend>
+        <div class="grid">
+            <div class="form-group"><label for="software">Programvare</label><input type="text" id="software"></div>
+            <div class="form-group"><label for="versioning">Versjonering</label><input type="text" id="versioning"></div>
+            <div class="form-group"><label for="pidSystem">PID Systemer</label><input type="text" id="pidSystem"></div>
+            <div class="form-group"><label for="citationReference">Siteringsindeks</label><input type="text" id="citationReference"></div>
+            <div class="form-group"><label for="metrics">Metrikker/Statistikk</label><input type="text" id="metrics"></div>
+            <div class="form-group"><label for="citationGuidelineUrl">Siteringsveileder URL</label><input type="url" id="citationGuidelineUrl"></div>
+            <div class="form-group"><label for="aidSystem">Forfatter-ID (ORCID)</label><input type="text" id="aidSystem"></div>
+            <div class="form-group"><label for="enhancedPublication">Enhanced Publications</label><input type="text" id="enhancedPublication"></div>
+            <div class="form-group"><label for="qualityManagementStatus">Kvalitetssikring Status</label><input type="text" id="qualityManagementStatus"></div>
+            <div class="form-group"><label for="qualityManagementMeasureName">Kvalitetstiltak Navn</label><input type="text" id="qualityManagementMeasureName"></div>
+            <div class="form-group"><label for="qualityManagementMeasureUrl">Kvalitetstiltak URL</label><input type="url" id="qualityManagementMeasureUrl"></div>
+            <div class="form-group"><label for="certificateName">Sertifikat Navn</label><input type="text" id="certificateName"></div>
+            <div class="form-group"><label for="certificateUrl">Sertifikat URL</label><input type="url" id="certificateUrl"></div>
+            <div class="form-group"><label for="profileName">Anbefalt av Profil</label><input type="text" id="profileName"></div>
+            <div class="form-group"><label for="metadataStandardName">Metadatastandarder</label><input type="text" id="metadataStandardName"></div>
+            <div class="form-group"><label for="syndicationType">Syndikering (RSS/Atom)</label><input type="text" id="syndicationType"></div>
+        </div>
+    </fieldset>
+
+    <!-- 6. SYSTEMMETADATA -->
+    <fieldset>
+        <legend>6. Systemmetadata & Logger</legend>
+        <div class="grid">
+            <div class="form-group"><label for="entryDate">Opprettet i re3data</label><input type="text" id="entryDate" readonly></div>
+            <div class="form-group"><label for="lastUpdate">Siste Oppdatering</label><input type="text" id="lastUpdate" readonly></div>
+            <div class="form-group full-width"><label for="remarks">Tilleggskommentarer (Remarks)</label><textarea id="remarks"></textarea></div>
+            <div class="form-group full-width"><label for="apis">Registrerte API Endepunkter</label><input type="text" id="apis"></div>
+        </div>
+    </fieldset>
+
+    <!-- UTSKRIFT -->
+    <fieldset>
+        <legend>Generert JSON-LD Resultat</legend>
+        <div id="jsonLdOutput" class="output-box">// JSON-LD printes her...</div>
+    </fieldset>
+</div>
+
+<script>
+const R3D_NS = "http://re3data.org";
+async function fetchAndPopulateAllElements() {
+    const url = "https://githubusercontent.com";
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Feil ved henting av XML.");
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+        const repoNodes = xmlDoc.getElementsByTagNameNS(R3D_NS, "repository");
+        if (repoNodes.length === 0) return alert("Fant ikke r3d:repository-elementet i XML-en.");
+        const repo = repoNodes[0];
+
+        const txt = (tag) => {
+            const el = repo.getElementsByTagNameNS(R3D_NS, tag);
+            return el.length > 0 ? el[0].textContent.trim() : "";
+        };
+        const arr = (tag) => {
+            return Array.from(repo.getElementsByTagNameNS(R3D_NS, tag)).map(el => el.textContent.trim()).filter(Boolean).join(", ");
+        };
+        const subTxt = (p, tag) => {
+            if (!p) return "";
+            const el = p.getElementsByTagNameNS(R3D_NS, tag);
+            return el.length > 0 ? el[0].textContent.trim() : "";
+        };
+
+        // --- 1. GENERELT & IDENTIFIKATORER ---
+        document.getElementById("re3dataId").value = txt("re3data");
+        document.getElementById("doi").value = txt("doi");
+        document.getElementById("repositoryName").value = txt("repositoryName");
+        document.getElementById("additionalName").value = arr("additionalName");
+        document.getElementById("repositoryUrl").value = txt("repositoryUrl");
+        document.getElementById("repositoryIdentifierType").value = txt("repositoryIdentifierType");
+        document.getElementById("repositoryIdentifierValue").value = txt("repositoryIdentifierValue");
+        document.getElementById("type").value = txt("type");
+        document.getElementById("size").value = txt("size");
+        document.getElementById("repositoryContactInformation").value = txt("repositoryContactInformation");
+        document.getElementById("repositoryContactType").value = txt("repositoryContactType");
+        document.getElementById("description").value = txt("description");
+
+        // --- 2. LIVSSYKLUS & INNHOLD ---
+        document.getElementById("startDate").value = txt("startDate");
+        document.getElementById("closed").value = txt("closed");
+        document.getElementById("offline").value = txt("offline");
+        document.getElementById("relatedRepositoryId").value = txt("relatedRepositoryId");
+        document.getElementById("relatedRepositoryType").value = txt("relatedRepositoryType");
+        document.getElementById("repositoryLanguage").value = arr("repositoryLanguage");
+        
+        document.getElementById("subjects").value = Array.from(repo.getElementsByTagNameNS(R3D_NS, "subject")).map(s => {
+            return `${subTxt(s, "subjectName")} (${s.getAttribute("subjectScheme") || ""}:${subTxt(s, "subjectId")})`;
+        }).join(", ");
+        
+        document.getElementById("missionStatementUrl").value = txt("missionStatementUrl");
+        document.getElementById("contentTypeName").value = arr("contentTypeName");
+        document.getElementById("providerType").value = txt("providerType");
+        document.getElementById("keyword").value = arr("keyword");
+
+        // --- 3. INSTITUSJON ---
+        const instNodes = repo.getElementsByTagNameNS(R3D_NS, "institution");
+        if (instNodes.length > 0) {
+            const inst = instNodes[0];
+            document.getElementById("institutionName").value = subTxt(inst, "institutionName");
+            document.getElementById("institutionAdditionalName").value = Array.from(inst.getElementsByTagNameNS(R3D_NS, "institutionAdditionalName")).map(e => e.textContent.trim()).join(", ");
+            document.getElementById("institutionCountry").value = subTxt(inst, "institutionCountry");
+            document.getElementById("responsibilityType").value = Array.from(inst.getElementsByTagNameNS(R3D_NS, "responsibilityType")).map(e => e.textContent.trim()).join(", ");
+            document.getElementById("institutionType").value = subTxt(inst, "institutionType");
+            document.getElementById("institutionUrl").value = subTxt(inst, "institutionUrl");
+            document.getElementById("institutionIdentifierType").value = subTxt(inst, "institutionIdentifierType");
+            document.getElementById("institutionIdentifierUrl").value = subTxt(inst, "institutionIdentifierUrl");
+            document.getElementById("responsibilityStartDate").value = subTxt(inst, "responsibilityStartDate");
+            document.getElementById("responsibilityEndDate").value = subTxt(inst, "responsibilityEndDate");
+        }
+
+        // --- 4. LISENSER, REGLEMENT & TEKNISKE METADATA ---
+        document.getElementById("policyName").value = txt("policyName");
+        document.getElementById("policyUrl").value = txt("policyUrl");
+        document.getElementById("funderName").value = txt("funderName");
+        document.getElementById("funderIdentifierValue").value = txt("funderIdentifierValue");
+        document.getElementById("grantIdentifier").value = txt("grantIdentifier");
+        document.getElementById("databaseAccessType").value = txt("databaseAccessType");
+        document.getElementById("databaseAccessRestriction").value = txt("databaseAccessRestriction");
+        document.getElementById("databaseLicenseName").value = arr("databaseLicenseName");
+        document.getElementById("databaseLicenseUrl").value = arr("databaseLicenseUrl");
+        document.getElementById("dataAccessType").value = arr("dataAccessType");
+        document.getElementById("dataAccessRestriction").value = arr("dataAccessRestriction");
+        document.getElementById("dataLicenseName").value = arr("dataLicenseName");
+        document.getElementById("dataLicenseUrl").value = arr("dataLicenseUrl");
+        document.getElementById("dataUploadType").value = arr("dataUploadType");
+        document.getElementById("dataUploadRestriction").value = arr("dataUploadRestriction");
+        document.getElementById("dataUploadLicenseName").value = txt("dataUploadLicenseName");
+        document.getElementById("dataUploadLicenseUrl").value = txt("dataUploadLicenseUrl");
+        document.getElementById("software").value = arr("software");
+        document.getElementById("versioning").value = txt("versioning");
+        
+        document.getElementById("apis").value = Array.from(repo.getElementsByTagNameNS(R3D_NS, "api")).map(a => {
+            return `${subTxt(a, "apiType")}: ${subTxt(a, "apiUrl")}`;
+        }).join(" | ");
+        
+        document.getElementById("pidSystem").value = arr("pidSystem");
+        document.getElementById("citationReference").value = arr("citationReference");
+        document.getElementById("metrics").value = arr("metrics");
+        document.getElementById("citationGuidelineUrl").value = txt("citationGuidelineUrl");
+        document.getElementById("aidSystem").value = arr("aidSystem");
+        document.getElementById("enhancedPublication").value = txt("enhancedPublication");
+        document.getElementById("qualityManagementStatus").value = txt("qualityManagementStatus");
+        document.getElementById("qualityManagementMeasureName").value = txt("qualityManagementMeasureName");
+        document.getElementById("qualityManagementMeasureUrl").value = txt("qualityManagementMeasureUrl");
+        document.getElementById("certificateName").value = arr("certificateName");
+        document.getElementById("certificateUrl").value = arr("certificateUrl");
+        document.getElementById("profileName").value = txt("profileName");
+        document.getElementById("metadataStandardName").value = arr("metadataStandardName");
+        document.getElementById("syndicationType").value = arr("syndicationType");
+        document.getElementById("remarks").value = txt("remarks");
+        document.getElementById("entryDate").value = txt("entryDate");
+        document.getElementById("lastUpdate").value = txt("lastUpdate");
+
+        alert("Data høstet og lagt inn i alle de nye feltene!");
+    } catch (e) {
+        console.error(e);
+        alert("Feil under parsing av re3data-metadata: " + e.message);
+    }
+}
+function generateComprehensiveJsonLd() {
+    const splitArr = (id) => {
+        const val = document.getElementById(id).value.trim();
+        return val ? val.split(",").map(i => i.trim()) : [];
+    };
+    const getVal = (id) => document.getElementById(id).value.trim();
+
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "DataRepository",
+        "@id": getVal("doi") || getVal("re3dataId"),
+        "name": getVal("repositoryName"),
+        "alternateName": splitArr("additionalName"),
+        "url": getVal("repositoryUrl"),
+        "description": getVal("description"),
+        "dateCreated": getVal("startDate") || getVal("entryDate"),
+        "dateModified": getVal("lastUpdate"),
+        "inLanguage": splitArr("repositoryLanguage"),
+        "keywords": splitArr("keyword"),
+        "comment": getVal("remarks"),
+        "identifier": {
+            "@type": "PropertyValue",
+            "propertyID": getVal("repositoryIdentifierType") || "re3data",
+            "value": getVal("repositoryIdentifierValue") || getVal("re3dataId")
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": getVal("institutionName"),
+            "alternateName": splitArr("institutionAdditionalName"),
+            "url": getVal("institutionUrl"),
+            "address": { "@type": "PostalAddress", "addressCountry": getVal("institutionCountry") },
+            "funder": { "@type": "Organization", "name": getVal("funderName"), "identifier": getVal("funderIdentifierValue") }
+        },
+        "license": splitArr("dataLicenseUrl").concat(splitArr("databaseLicenseUrl")).filter(Boolean),
+        "softwareHelp": { "@type": "SoftwareApplication", "name": getVal("software") },
+        "additionalProperty": [
+            { "@type": "PropertyValue", "name": "repositoryType", "value": getVal("type") },
+            { "@type": "PropertyValue", "name": "repositorySize", "value": getVal("size") },
+            { "@type": "PropertyValue", "name": "contentTypes", "value": splitArr("contentTypeName") },
+            { "@type": "PropertyValue", "name": "pidSystems", "value": splitArr("pidSystem") },
+            { "@type": "PropertyValue", "name": "subjects", "value": splitArr("subjects") },
+            { "@type": "PropertyValue", "name": "apiEndpoints", "value": getVal("apis") ? getVal("apis").split(" | ") : [] },
+            { "@type": "PropertyValue", "name": "certificates", "value": splitArr("certificateName") },
+            { "@type": "PropertyValue", "name": "metadataStandards", "value": splitArr("metadataStandardName") },
+            { "@type": "PropertyValue", "name": "metricsSupported", "value": splitArr("metrics") },
+            { "@type": "PropertyValue", "name": "authorIdentificationSystems", "value": splitArr("aidSystem") },
+            { "@type": "PropertyValue", "name": "versioningEnabled", "value": getVal("versioning") }
+        ]
+    };
+
+    // Filtrerer ut tomme tilleggsegenskaper fra listen
+    jsonLd.additionalProperty = jsonLd.additionalProperty.filter(p => p.value && p.value.length > 0);
+    
+    // Injiserer strukturert JSON-LD i visningsboksen
+    document.getElementById("jsonLdOutput").textContent = JSON.stringify(jsonLd, null, 2);
+}
+</script>
+
+</body>
+</html>

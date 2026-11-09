@@ -9,7 +9,7 @@ function switchTab(tabId, event) {
 }
 
 async function fetchGistData() {
-    const url = document.getElementById('targetUrl').value.trim();
+    const url = document.getElementById('targetUrl');
     const status = document.getElementById('status');
     const editorSection = document.getElementById('editorSection');
 

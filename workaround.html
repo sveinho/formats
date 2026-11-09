@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanilla JS HTTP RDF Harvester</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; max-width: 800px; }
+        button { padding: 10px 15px; font-size: 16px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 15px; border: 1px solid #ddd; overflow-x: auto; }
+        .status { font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>RDF/XML HTTP Harvester</h1>
+    <p>Harvests custom XML over HTTP, extracts unserialized RDF, and dynamically rebuilds a valid RDF/XML document in the browser.</p>
+
+    <button id="harvestBtn">Start Harvesting</button>
+    
+    <div id="status" class="status"></div>
+    <h3>Extracted & Validated RDF/XML Serialization:</h3>
+    <pre id="output">Click 'Start Harvesting' to begin...</pre>
+
+    <script>
+        document.getElementById('harvestBtn').addEventListener('click', harvestData);
+
+        async funksjon harvestData() {
+            const statusDiv = document.getElementById('status');
+            const outputPre = document.getElementById('output');
+            
+            statusDiv.textContent = "Fetching from HTTP source...";
+            statusDiv.style.color = "blue";
+
+            // TARGET ENDPOINT (Replace with your actual HTTP URL)
+            const targetUrl = 'https://allorigins.win' + encodeURIComponent('https://mocky.io'); 
+            
+            try {
+                // 1. Harvest the raw XML file over HTTP
+                const response = await fetch(targetUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/xml' }
+                });
+
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                
+                const xmlText = await response.text();
+                
+                // 2. Parse the HTTP text as standard XML DOM
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+                
+                // Check if the outer wrapper itself is malformed XML
+                const parserError = xmlDoc.querySelector("parsererror");
+                if (parserError) throw new Error("Outer XML document is malformed.");
+
+                // 3. Extract the unserialized data using XPath
+                // (Adjust the path mapping based on your exact XML tags)
+                const xpathResult = xmlDoc.evaluate(
+                    "//myCustomWrapper/unserializedRdfData", 
+                    xmlDoc, 
+                    null, 
+                    XPathResult.FIRST_ORDERED_NODE_TYPE, 
+                    null
+                );
+                
+                const targetNode = xpathResult.singleNodeValue;
+                if (!targetNode) throw new Error("Target XML node containing the RDF data was not found.");
+
+                // Fetch raw text contents (this automatically decodes &lt; and &gt; or CDATA blocks)
+                const rawUnserializedContent = targetNode.textContent.trim();
+
+                // 4. Force serialization into a standardized RDF/XML string
+                let validRdfXml = "";
+                
+                // Check if it already includes a root element or if we need to wrap it
+                if (rawUnserializedContent.includes("<rdf:RDF")) {
+                    validRdfXml = rawUnserializedContent;
+                } else {
+                    validRdfXml = `<?xml version="1.0" encoding="utf-8"?>\n<rdf:RDF xmlns:rdf="http://w3.org">\n    ${rawUnserializedContent}\n</rdf:RDF>`;
+                }
+
+                // 5. Final check: Validate that our new serialization string is valid RDF/XML
+                const finalRdfDoc = parser.parseFromString(validRdfXml, "application/xml");
+                if (finalRdfDoc.querySelector("parsererror")) {
+                    throw new Error("The extracted RDF payload could not be parsed into valid XML.");
+                }
+
+                // Success Output
+                statusDiv.textContent = "Harvesting and transformation successful!";
+                statusDiv.style.color = "green";
+                outputPre.textContent = validRdfXml;
+
+            } catch (error) {
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.style.color = "red";
+                outputPre.textContent = "Harvesting failed.";
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

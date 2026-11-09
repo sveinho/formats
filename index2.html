@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gist XML Harvester & Editor Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>Harvest & Edit Gist XML Record</h1>
+
+    <!-- TRINN 1: HENT DATA -->
+    <div class="section">
+        <label for="targetUrl">GitHub Gist XML URL eller re3data XML-kilde:</label>
+        <input type="text" id="targetUrl" value="https://githubusercontent.com">
+        <button class="btn btn-fetch" onclick="fetchGistData()">Fetch & Populate Fields</button>
+        <span id="status" class="status-text"></span>
+    </div>
+
+    <!-- TRINN 2: REDIGERINGSFORM -->
+    <div id="editorSection" class="section hidden">
+        <h2>Edit Metadata Before Export</h2>
+        
+        <!-- Navigering mellom faner -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-hoved', event)">Hovedinfo</button>
+            <button class="tab-btn" onclick="switchTab('tab-institusjon', event)">Institusjon & Finansiering</button>
+            <button class="tab-btn" onclick="switchTab('tab-tilgang', event)">Tilgang & Lisenser</button>
+            <button class="tab-btn" onclick="switchTab('tab-teknisk', event)">Teknisk & API</button>
+        </div>
+
+        <!-- FANE 1: HOVEDINFO -->
+        <div id="tab-hoved" class="tab-content active">
+            <div class="grid">
+                <div>
+                    <label for="repoName">Repository Name:</label>
+                    <input type="text" id="repoName">
+                </div>
+                <div>
+                    <label for="repoAdditionalName">Additional Name / Akronym:</label>
+                    <input type="text" id="repoAdditionalName">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="repoIdentifier">Identifier / DOI:</label>
+                    <input type="text" id="repoIdentifier">
+                </div>
+                <div>
+                    <label for="repoUrl">Repository URL:</label>
+                    <input type="text" id="repoUrl">
+                </div>
+            </div>
+            <label for="description">Description:</label>
+            <textarea id="description"></textarea>
+            <div class="grid">
+                <div>
+                    <label for="startDate">Date Created / Operational:</label>
+                    <input type="text" id="startDate">
+                </div>
+                <div>
+                    <label for="repoLanguage">Languages (kommadelt):</label>
+                    <input type="text" id="repoLanguage">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="repoType">Repository Type:</label>
+                    <input type="text" id="repoType">
+                </div>
+                <div>
+                    <label for="repoSize">Size / Volume:</label>
+                    <input type="text" id="repoSize">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="subjects">Subjects / Fagområder (kommadelt):</label>
+                    <input type="text" id="subjects">
+                </div>
+                <div>
+                    <label for="suppKeywords">Keywords / Stikkord (kommadelt):</label>
+                    <input type="text" id="suppKeywords">
+                </div>
+            </div>
+        </div>
+
+        <!-- FANE 2: INSTITUSJON & FINANSIERING -->
+        <div id="tab-institusjon" class="tab-content">
+            <h3>Ansvarlig Institusjon</h3>
+            <div class="grid">
+                <div>
+                    <label for="instName">Institution Name:</label>
+                    <input type="text" id="instName">
+                </div>
+                <div>
+                    <label for="instCountry">Institution Country (ISO):</label>
+                    <input type="text" id="instCountry">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="instUrl">Institution URL:</label>
+                    <input type="text" id="instUrl">
+                </div>
+                <div>
+                    <label for="instType">Institution Type:</label>
+                    <input type="text" id="instType">
+                </div>
+            </div>
+
+            <h3>Finansiering (Funder)</h3>
+            <div class="grid">
+                <div>
+                    <label for="funderName">Funder Name:</label>
+                    <input type="text" id="funderName">
+                </div>
+                <div>
+                    <label for="funderId">Funder Identifier / Crossref DOI:</label>
+                    <input type="text" id="funderId">
+                </div>
+            </div>
+            <label for="grantId">Grant ID / Prosjektnummer:</label>
+            <input type="text" id="grantId">
+        </div>
+
+        <!-- FANE 3: TILGANG & LISENSER -->
+        <div id="tab-tilgang" class="tab-content">
+            <div class="grid">
+                <div>
+                    <label for="databaseAccess">Database Access Type:</label>
+                    <input type="text" id="databaseAccess">
+                </div>
+                <div>
+                    <label for="databaseLicense">Database License:</label>
+                    <input type="text" id="databaseLicense">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="dataAccess">Data Access Type:</label>
+                    <input type="text" id="dataAccess">
+                </div>
+                <div>
+                    <label for="dataLicense">Data License (kommadelt):</label>
+                    <input type="text" id="dataLicense">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="dataUpload">Data Upload Restriction:</label>
+                    <input type="text" id="dataUpload">
+                </div>
+                <div>
+                    <label for="dataUploadLicense">Data Upload License:</label>
+                    <input type="text" id="dataUploadLicense">
+                </div>
+            </div>
+            <label for="policyUrl">Policy URL:</label>
+            <input type="text" id="policyUrl">
+        </div>
+
+        <!-- FANE 4: TEKNISK & API -->
+        <div id="tab-teknisk" class="tab-content">
+            <div class="grid">
+                <div>
+                    <label for="software">Repository Software:</label>
+                    <input type="text" id="software">
+                </div>
+                <div>
+                    <label for="pidSystem">PID System (kommadelt):</label>
+                    <input type="text" id="pidSystem">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="apiTypes">Støttede API-typer (kommadelt):</label>
+                    <input type="text" id="apiTypes">
+                </div>
+                <div>
+                    <label for="metadataStandard">Metadata Standarder (kommadelt):</label>
+                    <input type="text" id="metadataStandard">
+                </div>
+            </div>
+            <div class="grid">
+                <div>
+                    <label for="certificate">Sertifikat / Standarder:</label>
+                    <input type="text" id="certificate">
+                </div>
+                <div>
+                    <label for="versioning">Støtter versjonering?</label>
+                    <input type="text" id="versioning">
+                </div>
+            </div>
+            
+            <h3>Tilleggskommentarer</h3>
+            <label for="suppComment">Ekstra notater (mappes til comment):</label>
+            <textarea id="suppComment" placeholder="Legg til interne merknader her..."></textarea>
+        </div>
+
+        <button class="btn btn-generate" onclick="generateJsonLD()">Generate & Inject JSON-LD</button>
+    </div>
+
+    <!-- TRINN 3: OUTPUT -->
+    <div id="outputSection" class="section hidden">
+        <h2>Generated JSON-LD Output</h2>
+        <button id="downloadBtn" class="btn btn-download" onclick="downloadJsonLD()"> Download JSON-LD File</button>
+        <pre><code id="output">// Klar for generering...</code></pre>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

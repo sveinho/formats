@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenDataSphere | Institutional Data Repository</title>
+    <script src="https://tailwindcss.com"></script>
+    
+    <!-- EMBEDDED DCAT-AP JSON-LD METADATA WITH STANDARDS & CERTIFICATIONS -->
+    <script type="application/ld+json">
+    {
+      "@context": {
+        "dcat": "http://w3.org",
+        "dct": "http://purl.org",
+        "foaf": "http://xmlns.com",
+        "vcard": "http://w3.org",
+        "xsd": "http://w3.org",
+        "adms": "http://w3.org",
+        "skos": "http://w3.org"
+      },
+      "@id": "https://example.org",
+      "@type": "dcat:Catalog",
+      "dct:title": [
+        { "@value": "OpenDataSphere Repository", "@language": "en" }
+      ],
+      "dct:description": [
+        { "@value": "The official open access data repository providing stable datasets for environmental, economic, and scientific research.", "@language": "en" }
+      ],
+      "dct:publisher": {
+        "@id": "https://example.org",
+        "@type": "foaf:Agent",
+        "foaf:name": "OpenDataSphere Foundation",
+        "dct:type": {
+          "@id": "http://purl.org"
+        }
+      },
+      
+      <!-- REPOSITORY COMPLIANCE, POLICIES & CERTIFICATIONS -->
+      "dct:conformsTo": [
+        {
+          "@id": "https://go-fair.org",
+          "@type": "dct:Standard",
+          "dct:title": "FAIR Data Principles"
+        },
+        {
+          "@id": "https://iso.org",
+          "@type": "dct:Standard",
+          "dct:title": "ISO/IEC 27001:2022 Information Security Management"
+        },
+        {
+          "@id": "https://coretrustseal.org",
+          "@type": "dct:Standard",
+          "dct:title": "CoreTrustSeal Certified Trustworthy Data Repository"
+        }
+      ],
+      "dct:hasPolicy": {
+        "@id": "https://example.org/privacy-and-retention-policy",
+        "dct:title": "OpenDataSphere Long-term Preservation & Privacy Policy"
+      },
+
+      "dct:spatial": {
+        "@id": "http://europa.eu"
+      },
+      "dct:language": {
+        "@id": "http://europa.eu"
+      },
+      "dct:license": {
+        "@id": "http://europa.eu"
+      },
+      "dcat:homepage": {
+        "@id": "https://example.org"
+      },
+      "dcat:contactPoint": {
+        "@type": "vcard:Organization",
+        "vcard:fn": "OpenDataSphere Support Team",
+        "vcard:hasEmail": {
+          "@id": "mailto:support@example.org"
+        }
+      },
+      "dcat:dataset": [
+        {
+          "@id": "https://example.org/dataset/env-2026-air-quality",
+          "@type": "dcat:Dataset",
+          "dct:title": [{ "@value": "European Air Quality Historical Data (2026)", "@language": "en" }],
+          "dct:description": [{ "@value": "Hourly updates of PM2.5, PM10, and NO2 concentrations across major European cities.", "@language": "en" }],
+          
+          <!-- DATASET-SPECIFIC STANDARD -->
+          "dct:conformsTo": {
+            "@id": "https://iso.org",
+            "@type": "dct:Standard",
+            "dct:title": "ISO 19115 Geographic Information Metadata"
+          },
+          
+          "dcat:keyword": ["air quality", "environment", "pollution", "hourly"],
+          "dct:issued": { "@value": "2026-01-15", "@type": "xsd:date" },
+          "dct:modified": { "@value": "2026-11-10", "@type": "xsd:date" },
+          "dcat:distribution": [
+            {
+              "@id": "https://example.org/dataset/env-2026-air-quality/csv",
+              "@type": "dcat:Distribution",
+              "dct:title": [{ "@value": "Air Quality Data 2026 - CSV Download", "@language": "en" }],
+              "dcat:accessURL": { "@id": "https://example.org/dataset/env-2026-air-quality" },
+              "dcat:downloadURL": { "@id": "https://example.org" },
+              "dct:format": { "@id": "http://europa.eu" },
+              "dcat:mediaType": "text/csv"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans flex flex-col min-h-screen">
+
+    <!-- Header / Navbar -->
+    <header class="bg-blue-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">🌐</span>
+                <span class="text-xl font-bold tracking-tight">OpenDataSphere</span>
+            </div>
+            <nav class="hidden md:flex space-x-6 text-sm font-medium">
+                <a href="#" class="hover:text-blue-200 transition">Datasets</a>
+                <a href="#" class="hover:text-blue-200 transition">API Documentation</a>
+                <a href="#" class="hover:text-blue-200 transition">Standards & Governance</a>
+                <a href="#" class="hover:text-blue-200 transition">About</a>
+            </nav>
+            <div class="text-xs bg-blue-800 text-blue-100 px-3 py-1.5 rounded-full border border-blue-700">
+                🤖 DCAT-AP Harvest Ready
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-16 px-4">
+        <div class="max-w-5xl mx-auto text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4">Discover Trustworthy Open Data</h1>
+            <p class="text-lg md:text-xl text-blue-100 max-w-3xl mx-auto mb-8">
+                Certified infrastructure providing FAIR data assets for European public and private research frameworks.
+            </p>
+            <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg flex items-center p-2">
+                <span class="text-gray-400 px-3">🔍</span>
+                <input type="text" placeholder="Search datasets, keywords, standards..." class="w-full py-2 px-1 text-gray-800 focus:outline-none text-base" />
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition">Search</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Repository Content -->
+    <main class="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 lg:grid-cols-4 gap-8 flex-grow">
+        
+        <!-- Left Sidebar: Meta, Standards & Trust Indicators -->
+        <aside class="space-y-6">
+            <!-- Basic Metadata -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 class="font-bold text-gray-800 uppercase tracking-wider text-xs mb-4">Repository Identity</h3>
+                <dl class="space-y-4 text-sm">
+                    <div>
+                        <dt class="text-gray-500 font-medium">Publisher</dt>
+                        <dd class="text-gray-900 font-semibold">OpenDataSphere Foundation</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500 font-medium">Spatial Coverage</dt>
+                        <dd class="text-gray-900">European Union (EUR)</dd>
+                    </div>
+                    <div>
+                        <dt class="text-gray-500 font-medium">Support Contact</dt>
+                        <dd class="text-blue-600 hover:underline"><a href="mailto:support@example.org">support@example.org</a></dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- NEW SECTION: Certifications & Policies -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 class="font-bold text-gray-800 uppercase tracking-wider text-xs mb-4">Trust & Certifications</h3>
+                <ul class="space-y-3 text-xs">
+                    <li class="flex items-start space-x-2">
+                        <span class="text-green-600">✔</span>
+                        <div>
+                            <strong class="text-gray-900 block">CoreTrustSeal Certified</strong>
+                            <span class="text-gray-500">Recognized trustworthy data repository.</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <span class="text-green-600">✔</span>
+                        <div>
+                            <strong class="text-gray-900 block">ISO/IEC 27001</strong>
+                            <span class="text-gray-500">Certified information security governance.</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start space-x-2">
+                        <span class="text-green-600">✔</span>
+                        <div>
+                            <strong class="text-gray-900 block">FAIR Data Framework</strong>
+                            <span class="text-gray-500">Findable, Accessible, Interoperable, Reusable.</span>
+                        </div>
+                    </li>
+                </ul>
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <a href="https://example.org/privacy-and-retention-policy" class="text-xs text-blue-600 font-medium hover:underline block">
+                        📄 Read Governance & Retention Policy →
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs text-blue-800">
+                <p class="font-bold mb-1">💡 DCAT-AP Notice:</p>
